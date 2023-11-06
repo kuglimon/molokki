@@ -1,5 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use sailfish::TemplateOnce;
+use serde::{Deserialize, Serialize};
+use std::{collections::BTreeMap, fs};
 
 /// Rojekti - Tmuxinator but rust
 #[derive(Parser)]
@@ -32,6 +34,13 @@ struct HelloTemplate {
     shell: String,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct Config {
+    name: String,
+    root: String,
+    windows: Vec<BTreeMap<String, Option<String>>>,
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -46,6 +55,15 @@ fn main() {
                 shell: "/bin/bash".to_string(),
             };
             println!("{}", ctx.render_once().unwrap());
+
+            let contents = fs::read_to_string(
+                "/Users/kuglimon/development/personal/layouts/tmuxinator/dotfiles.yml",
+            )
+            .expect("Should have been able to read the file");
+
+            let config: Config = serde_yaml::from_str(&contents).unwrap();
+
+            println!("{:?}", config);
         }
     }
 }
