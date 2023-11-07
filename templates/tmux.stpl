@@ -1,1 +1,8 @@
-#<%= shell %>
+#!/usr/bin/env bash
+
+tmux start-server
+
+cd <%= root.unwrap_or(".".to_string()) %>
+
+# Run project on start hooks
+# TODO(tatu): I've yet to use this

@@ -28,19 +28,16 @@ struct StartArgs {
     name: String,
 }
 
-#[derive(TemplateOnce)]
 #[template(path = "tmux.stpl")]
-struct HelloTemplate {
-    shell: String,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(TemplateOnce, Debug, PartialEq, Serialize, Deserialize)]
 struct Config {
     name: String,
-    root: String,
+    root: Option<String>,
     windows: Vec<BTreeMap<String, Option<String>>>,
 }
 
+// TODO(tatu): Add support for config directory
+// TODO(tatu): Add listing support
 fn main() {
     let cli = Cli::parse();
 
@@ -48,14 +45,9 @@ fn main() {
     // matches just as you would the top level cmd
     match &cli.command {
         Commands::List {} => {
-            println!("'myapp add' was used, name is:")
+            unimplemented!("Add support for listing")
         }
         Commands::Start(name) => {
-            let ctx = HelloTemplate {
-                shell: "/bin/bash".to_string(),
-            };
-            println!("{}", ctx.render_once().unwrap());
-
             let contents = fs::read_to_string(
                 "/Users/kuglimon/development/personal/layouts/tmuxinator/dotfiles.yml",
             )
@@ -64,6 +56,7 @@ fn main() {
             let config: Config = serde_yaml::from_str(&contents).unwrap();
 
             println!("{:?}", config);
+            println!("{}", config.render_once().unwrap());
         }
     }
 }
