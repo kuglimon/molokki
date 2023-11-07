@@ -19,6 +19,9 @@ enum Commands {
 
     /// Start a tmux session with the given project name
     Start(StartArgs),
+
+    /// Prints projects template
+    Debug(StartArgs),
 }
 
 #[derive(Args)]
@@ -47,7 +50,7 @@ fn main() {
         Commands::List {} => {
             unimplemented!("Add support for listing")
         }
-        Commands::Start(name) => {
+        Commands::Debug(name) => {
             let contents = fs::read_to_string(
                 "/Users/kuglimon/development/personal/layouts/tmuxinator/dotfiles.yml",
             )
@@ -57,6 +60,9 @@ fn main() {
 
             println!("{:?}", config);
             println!("{}", config.render_once().unwrap());
+        }
+        Commands::Start(name) => {
+            unimplemented!("Add support for start")
         }
     }
 }
