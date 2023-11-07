@@ -2,7 +2,22 @@
 
 tmux start-server
 
-cd <%= root.unwrap_or(".".to_string()) %>
+cd <%= config.root.unwrap_or(".".to_string()) %>
 
 # Run project on start hooks
 # TODO(tatu): I've yet to use this
+
+<% if is_new_tmux_session { %>
+# TODO(tatu): Implement new session support
+<% } else { %>
+# TODO(tatu): Implement existing session support
+<% } %>
+
+<% if attach { %>
+if [ -z "$TMUX" ]; then
+  tmux -u attach-session -t <%= config.name %>
+else
+  tmux -u switch-client -t <%= config.name %>
+fi
+<% } %>
+

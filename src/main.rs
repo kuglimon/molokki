@@ -31,14 +31,25 @@ struct StartArgs {
     /// Name of the tmux session and project
     #[arg(short, long)]
     name: String,
+
+    /// Should we attach to the session
+    #[arg(short, long)]
+    attach: bool,
 }
 
-#[derive(TemplateOnce, Debug, PartialEq, Serialize, Deserialize)]
-#[template(path = "tmux.stpl")]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Config {
     name: String,
     root: Option<String>,
     windows: Vec<BTreeMap<String, Option<String>>>,
+}
+
+#[derive(TemplateOnce)]
+#[template(path = "tmux.stpl")]
+struct TmuxScriptTemplate {
+    config: Config,
+    is_new_tmux_session: bool,
+    attach: bool,
 }
 
 // TODO(tatu): Add support for config directory
@@ -73,7 +84,12 @@ fn main() {
                     .expect("Could not read given project file, check permissions");
 
                 let config: Config = serde_yaml::from_str(&contents).unwrap();
-                println!("{}", config.render_once().unwrap());
+                let tmux_template = TmuxScriptTemplate {
+                    config,
+                    is_new_tmux_session: false,
+                    attach: name.attach,
+                };
+                println!("{}", tmux_template.render_once().unwrap());
             } else {
                 println!("Given project does not exist or is not a file");
                 // TODO(tatu): We should fall to create in this case
