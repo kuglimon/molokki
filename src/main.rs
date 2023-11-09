@@ -117,7 +117,7 @@ fi
 
 // TODO(tatu): Add support for config directory
 // TODO(tatu): Add listing support
-fn main() {
+fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // TODO(tatu): Maybe move this under environment or some similar struct
@@ -156,11 +156,12 @@ fn main() {
 
                 {
                     let mut lock = io::stdout().lock();
-                    render_tmux_template(&mut lock, &tmux_template);
+                    render_tmux_template(&mut lock, &tmux_template)
                 }
             } else {
                 println!("Given project does not exist or is not a file");
                 // TODO(tatu): We should fall to create in this case
+                Ok(())
             }
         }
         Commands::Start(_name) => {
