@@ -16,8 +16,9 @@ cd {{ root }}
 # TODO(tatu): I've yet to use this
 
 if tmux has-session -t "{{ name }}" &>/dev/null; then
-  # TODO(tatu): Implement existing session support
-  echo "existing session"
+  # TODO(tatu): Implement 'on_project_restart'. This commands runs in the caller
+  # shell before attaching to tmux on each attach after the first.
+  echo "Project restart hooks not implemented!"
 else
 {% for window in windows -%}
   {% if loop.index == 1 -%}
