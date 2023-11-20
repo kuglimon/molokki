@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -o errexit   # abort on nonzero exitstatus
-set -o nounset   # abort on unbound variable
 set -o pipefail  # don't hide errors within pipeset -e
 
 if [ -z ${DEBUG+x} ]; then
@@ -22,8 +21,8 @@ if tmux has-session -t "{{ name }}" &>/dev/null; then
 else
 {% for window in windows -%}
   {% if loop.index == 1 -%}
-  # XXX(tatu): Why do we reset TMUX?
   # XXX(tatu): Why does indentation get fucked here by extra level
+  # Reset TMUX so we don't send session commands to some other session
   TMUX= tmux new-session -d -s {{ name }} -n {{ window.name }}
   tmux send-keys -t {{ name }}:{{ loop.index }} cd\ {{ root }} C-m
   {% else -%}
