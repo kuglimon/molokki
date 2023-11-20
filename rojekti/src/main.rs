@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::io::{self, Write};
 use std::path::Path;
+use std::process::Command;
 use std::{collections::BTreeMap, fs};
 use std::{env, result};
 use tera::{Context, Tera};
@@ -23,11 +24,14 @@ enum Commands {
     /// List all available projects
     List {},
 
-    /// Start a tmux session with the given project name
+    /// Start tmux session with the given project name
     Start(StartArgs),
 
-    /// Prints projects template
+    /// Print project template
     Debug(StartArgs),
+
+    /// Open project config in $EDITOR
+    Edit(StartArgs),
 }
 
 #[derive(Args)]
@@ -144,6 +148,16 @@ fn main() -> Result<()> {
                     )?
                 }
             }
+            Ok(())
+        }
+        Commands::Edit(name) => {
+            let project_file = layout_home.join(&name.name).with_extension("yml");
+
+            Command::new(
+                env::var("EDITOR").expect("Broke ass environment does not have EDITOR set"),
+            )
+            .args([project_file.to_str().ok_or("Not a valid path")?])
+            .status()?;
             Ok(())
         }
         Commands::Debug(name) => {
