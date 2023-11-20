@@ -128,7 +128,25 @@ fn main() -> Result<()> {
     // matches just as you would the top level cmd
     match &cli.command {
         Commands::List {} => {
-            unimplemented!("Add support for listing")
+            let paths = fs::read_dir(&layout_home)?;
+
+            {
+                let mut lock = io::stdout().lock();
+                for path in paths {
+                    write!(
+                        lock,
+                        " {} ",
+                        path?
+                            .path()
+                            .with_extension("")
+                            .file_name()
+                            .ok_or("extension error")?
+                            .to_str()
+                            .ok_or("osstr error")?
+                    )?
+                }
+            }
+            Ok(())
         }
         Commands::Debug(name) => {
             let project_file = layout_home.join(&name.name).with_extension("yml");
