@@ -3,7 +3,7 @@
 set -o errexit   # abort on nonzero exitstatus
 set -o pipefail  # don't hide errors within pipeset -e
 
-if [ -z ${DEBUG+x} ]; then
+if [ -n "$DEBUG" ]; then
   set -x
 fi
 
