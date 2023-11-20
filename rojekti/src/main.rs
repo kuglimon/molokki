@@ -113,8 +113,6 @@ fn render_tmux_template(s: &mut dyn Write, config: &TmuxScriptTemplate) -> Resul
     Ok(())
 }
 
-// TODO(tatu): Add support for config directory
-// TODO(tatu): Add listing support
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
