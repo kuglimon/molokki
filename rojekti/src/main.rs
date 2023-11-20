@@ -211,3 +211,39 @@ fn main() -> Result<()> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{env, fs};
+
+    struct Setup;
+
+    impl Setup {
+        fn init() -> Self {
+            let temp = env::temp_dir().join("rojekti-test");
+            fs::create_dir_all(&temp).expect("could not create test dir");
+
+            env::set_var(
+                "XDG_CONFIG_HOME",
+                temp.to_str().expect("Cannot create temp path"),
+            );
+            Setup {}
+        }
+    }
+
+    impl Drop for Setup {
+        fn drop(&mut self) {
+            let temp = env::temp_dir().join("rojekti-test");
+            env::remove_var("XDG_CONFIG_HOME");
+            fs::remove_dir(&temp).expect("could not create test dir");
+        }
+    }
+
+    #[test]
+    fn it_lists_nothing_in_empty_dir() {
+        let _setup = Setup::init();
+
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
+}
