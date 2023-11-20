@@ -2,6 +2,7 @@ use clap::{Args, Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::io::{self, Write};
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 use std::{collections::BTreeMap, fs};
@@ -96,25 +97,15 @@ struct TmuxWindowConfig {
     command: String,
 }
 
-fn render_tmux_template(s: &mut dyn Write, config: &TmuxScriptTemplate) -> Result<()> {
+fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String> {
     // TOOD(tatu): Add proper error handling
-    let tera = match Tera::new("templates/**/*.sh") {
-        Ok(t) => t,
-        Err(e) => {
-            println!("Parsing error(s): {}", e);
-            ::std::process::exit(1);
-        }
-    };
+    let tera = Tera::new("templates/**/*.sh")?;
+    Ok(tera.render("tmux.sh", &Context::from_serialize(&config)?)?)
+}
 
-    writeln!(s, "{:?}", &Context::from_serialize(&config)?)?;
-
-    write!(
-        s,
-        "{}",
-        tera.render("tmux.sh", &Context::from_serialize(&config)?)?
-    )?;
-
-    Ok(())
+fn write_tmux_template(s: &mut dyn Write, config: &TmuxScriptTemplate) -> Result<()> {
+    // TOOD(tatu): Add proper error handling
+    Ok(write!(s, "{}", render_tmux_template(config)?)?)
 }
 
 fn main() -> Result<()> {
@@ -122,7 +113,7 @@ fn main() -> Result<()> {
 
     // TODO(tatu): Maybe move this under environment or some similar struct
     let home_path = env::var("HOME").expect("HOME is not set on env, cannot continue");
-    // TODO(tatu): Doesn't support .config in another directory, but I never change this, meh.
+    // TODO(tatu): Doesn't support .config in another directory, but I never change this, meh.main
     let xdg_config_home = Path::new(&home_path).join(".config");
     let layout_home = xdg_config_home.join("tmuxinator");
 
@@ -180,7 +171,7 @@ fn main() -> Result<()> {
 
                 {
                     let mut lock = io::stdout().lock();
-                    render_tmux_template(&mut lock, &tmux_template)
+                    write_tmux_template(&mut lock, &tmux_template)
                 }
             } else {
                 println!("Given project does not exist or is not a file");
@@ -188,8 +179,35 @@ fn main() -> Result<()> {
                 Ok(())
             }
         }
-        Commands::Start(_name) => {
-            unimplemented!("Add support for start")
+        Commands::Start(name) => {
+            let project_file = layout_home.join(&name.name).with_extension("yml");
+
+            println!(
+                "Debugging project {}",
+                project_file
+                    .to_str()
+                    .unwrap_or("project file is not a valid path")
+            );
+
+            if project_file.is_file() {
+                let contents = fs::read_to_string(project_file)
+                    .expect("Could not read given project file, check permissions");
+
+                let config: Config = serde_yaml::from_str(&contents).unwrap();
+                let tmux_template = TmuxScriptTemplate::build(config, name)?;
+                let script = render_tmux_template(&tmux_template)?;
+
+                // TODO(tatu): Handle errors
+                Command::new(env::var("SHELL").expect("SHELL not set, brother get some help"))
+                    .args(["-c", &script])
+                    .exec();
+
+                Ok(())
+            } else {
+                println!("Given project does not exist or is not a file");
+                // TODO(tatu): We should fall to create in this case
+                Ok(())
+            }
         }
     }
 }
