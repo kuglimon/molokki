@@ -1,11 +1,11 @@
 use clap::{Args, Parser, Subcommand};
-use sailfish::TemplateOnce;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::io::{self, Write};
 use std::path::Path;
 use std::{collections::BTreeMap, fs};
 use std::{env, result};
+use tera::{Context, Tera};
 
 type Result<T> = result::Result<T, Box<dyn Error>>;
 
@@ -41,6 +41,7 @@ struct StartArgs {
     attach: bool,
 }
 
+// TODO(tatu): Add default values
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Config {
     name: String,
@@ -48,69 +49,66 @@ struct Config {
     windows: Vec<BTreeMap<String, Option<String>>>,
 }
 
-#[derive(TemplateOnce)]
-#[template(path = "tmux.stpl", escape = false)]
+// TODO(tatu): Rename to project config
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct TmuxScriptTemplate {
-    config: Config,
     is_new_tmux_session: bool,
     attach: bool,
+    windows: Vec<TmuxWindowConfig>,
+    root: String,
+    name: String,
 }
 
-// I tried this with a templating engine but it printed new lines after each expression. Rather
-// wasting my time figuring out how to configure it, I just went with good 'ol writeln.
-//
-// It's a bit harder to read, but who gives a fuck when it's so simple. This is not something I'll
-// modify 20 hours a week.
+impl TmuxScriptTemplate {
+    fn build(config: Config, runtime_args: &StartArgs) -> Result<Self> {
+        let windows = config
+            .windows
+            .iter()
+            .map(|window_config| TmuxWindowConfig {
+                name: window_config.first_key_value().unwrap().0.to_string(),
+                command: window_config
+                    .first_key_value()
+                    .unwrap()
+                    .1
+                    .as_ref()
+                    .unwrap_or(&"".to_string())
+                    .to_string(),
+            })
+            .collect();
+
+        Ok(TmuxScriptTemplate {
+            is_new_tmux_session: false,
+            attach: runtime_args.attach,
+            windows,
+            name: config.name,
+            root: config.root.unwrap_or(".".to_string()),
+        })
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct TmuxWindowConfig {
+    name: String,
+    command: String,
+}
+
 fn render_tmux_template(s: &mut dyn Write, config: &TmuxScriptTemplate) -> Result<()> {
-    writeln!(
+    // TOOD(tatu): Add proper error handling
+    let tera = match Tera::new("templates/**/*.sh") {
+        Ok(t) => t,
+        Err(e) => {
+            println!("Parsing error(s): {}", e);
+            ::std::process::exit(1);
+        }
+    };
+
+    writeln!(s, "{:?}", &Context::from_serialize(&config)?)?;
+
+    write!(
         s,
-        r#"#!/usr/bin/env bash
-
-cd {root} 
-
-# Run project on start hooks
-# TODO(tatu): I've yet to use this
-
-if tmux has-session -t "{name}" &>/dev/null; then
-  # TODO(tatu): Needs window indexing"#,
-        root = &config.config.root.as_ref().unwrap_or(&".".to_string()),
-        name = &config.config.name
+        "{}",
+        tera.render("tmux.sh", &Context::from_serialize(&config)?)?
     )?;
-
-    for window in &config.config.windows {
-        let (name, _) = window
-            .first_key_value()
-            .expect("window does not have a valid configuration");
-
-        writeln!(
-            s,
-            r#"  tmux new-window <%- "path" %> -t {target} -n {name}"#,
-            target = "tmux_windows_target",
-            name = name
-        )?;
-    }
-
-    writeln!(
-        s,
-        r#"else
-    echo "existing session"
-    # TODO(tatu): Implement existing session support
-fi
-"#
-    )?;
-
-    if config.attach {
-        writeln!(
-            s,
-            r#"if [ -z "$TMUX" ]; then
-  tmux -u attach-session -t {name}
-else
-  tmux -u switch-client -t {name}
-fi
-"#,
-            name = &config.config.name
-        )?;
-    }
 
     Ok(())
 }
@@ -148,11 +146,7 @@ fn main() -> Result<()> {
 
                 let config: Config = serde_yaml::from_str(&contents).unwrap();
 
-                let tmux_template = TmuxScriptTemplate {
-                    config,
-                    is_new_tmux_session: false,
-                    attach: name.attach,
-                };
+                let tmux_template = TmuxScriptTemplate::build(config, name)?;
 
                 {
                     let mut lock = io::stdout().lock();
