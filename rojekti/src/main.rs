@@ -99,7 +99,8 @@ struct TmuxWindowConfig {
 
 fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String> {
     // TOOD(tatu): Add proper error handling
-    let tera = Tera::new("templates/**/*.sh")?;
+    let mut tera = Tera::default();
+    tera.add_raw_template("tmux.sh", include_str!("templates/tmux.sh"))?;
     Ok(tera.render("tmux.sh", &Context::from_serialize(&config)?)?)
 }
 
