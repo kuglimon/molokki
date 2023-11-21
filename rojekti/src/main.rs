@@ -174,13 +174,6 @@ fn main() -> Result<()> {
         Commands::Debug(name) => {
             let project_file = layout_home.join(&name.name).with_extension("yml");
 
-            println!(
-                "Debugging project {}",
-                project_file
-                    .to_str()
-                    .unwrap_or("project file is not a valid path")
-            );
-
             if project_file.is_file() {
                 let contents = fs::read_to_string(project_file)
                     .expect("Could not read given project file, check permissions");
@@ -201,13 +194,6 @@ fn main() -> Result<()> {
         }
         Commands::Start(name) => {
             let project_file = layout_home.join(&name.name).with_extension("yml");
-
-            println!(
-                "Debugging project {}",
-                project_file
-                    .to_str()
-                    .unwrap_or("project file is not a valid path")
-            );
 
             if project_file.is_file() {
                 let contents = fs::read_to_string(project_file)
