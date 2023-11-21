@@ -154,6 +154,10 @@ fn main() -> Result<()> {
                 for path in paths {
                     write!(lock, "{}{}", separator, path_to_filename(path?)?)?
                 }
+
+                if args.newline {
+                    write!(lock, "{}", separator)?
+                }
             }
             Ok(())
         }
