@@ -155,9 +155,7 @@ fn main() -> Result<()> {
                     write!(lock, "{}{}", separator, path_to_filename(path?)?)?
                 }
 
-                if args.newline {
-                    write!(lock, "{}", separator)?
-                }
+                write!(lock, "\n")?;
             }
             Ok(())
         }
