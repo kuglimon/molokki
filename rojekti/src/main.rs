@@ -38,12 +38,11 @@ enum Commands {
 #[derive(Args)]
 struct StartArgs {
     /// Name of the tmux session and project
-    #[arg(short, long)]
     name: String,
 
     /// Should we attach to the session
     #[arg(short, long)]
-    attach: bool,
+    no_attach: bool,
 }
 
 // TODO(tatu): Add default values
@@ -83,7 +82,7 @@ impl TmuxScriptTemplate {
 
         Ok(TmuxScriptTemplate {
             is_new_tmux_session: false,
-            attach: runtime_args.attach,
+            attach: !runtime_args.no_attach,
             windows,
             name: config.name,
             root: config.root.unwrap_or(".".to_string()),
