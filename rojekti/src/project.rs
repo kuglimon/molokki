@@ -22,14 +22,6 @@ struct TmuxScriptTemplate {
     name: String,
 }
 
-fn write_tmux_template(
-    s: &mut dyn Write,
-    config: &TmuxScriptTemplate,
-) -> Result<(), Box<dyn Error>> {
-    // TOOD(tatu): Add proper error handling
-    Ok(write!(s, "{}", render_tmux_template(config)?)?)
-}
-
 fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String, Box<dyn Error>> {
     // TOOD(tatu): Add proper error handling
     let mut tera = Tera::default();

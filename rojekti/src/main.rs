@@ -1,15 +1,6 @@
 use clap::{Args, Parser, Subcommand};
-use project::Project;
-use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::fs::DirEntry;
-use std::io::{self, Write};
-use std::os::unix::process::CommandExt;
-use std::path::Path;
-use std::process::Command;
-use std::{collections::BTreeMap, fs};
-use std::{env, result};
-use tera::{Context, Tera};
+use std::result;
 
 type Result<T> = result::Result<T, Box<dyn Error>>;
 
@@ -58,79 +49,10 @@ pub struct StartArgs {
     no_attach: bool,
 }
 
-// TODO(tatu): Add default values
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct Config {
-    name: String,
-    root: Option<String>,
-    windows: Vec<BTreeMap<String, Option<String>>>,
-}
-
-// TODO(tatu): Rename to project config
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct TmuxScriptTemplate {
-    is_new_tmux_session: bool,
-    attach: bool,
-    windows: Vec<TmuxWindowConfig>,
-    root: String,
-    name: String,
-}
-
-impl TmuxScriptTemplate {
-    fn build(config: Config, runtime_args: &StartArgs) -> Result<Self> {
-        let windows = config
-            .windows
-            .iter()
-            .map(|window_config| TmuxWindowConfig {
-                name: window_config.first_key_value().unwrap().0.to_string(),
-                command: window_config
-                    .first_key_value()
-                    .unwrap()
-                    .1
-                    .as_ref()
-                    .unwrap_or(&"".to_string())
-                    .to_string(),
-            })
-            .collect();
-
-        Ok(TmuxScriptTemplate {
-            is_new_tmux_session: false,
-            attach: !runtime_args.no_attach,
-            windows,
-            name: config.name,
-            root: config.root.unwrap_or(".".to_string()),
-        })
-    }
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct TmuxWindowConfig {
-    name: String,
-    command: String,
-}
-
-fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String> {
-    // TOOD(tatu): Add proper error handling
-    let mut tera = Tera::default();
-    tera.add_raw_template("tmux.sh", include_str!("templates/tmux.sh"))?;
-    Ok(tera.render("tmux.sh", &Context::from_serialize(&config)?)?)
-}
-
-fn write_tmux_template(s: &mut dyn Write, config: &TmuxScriptTemplate) -> Result<()> {
-    // TOOD(tatu): Add proper error handling
-    Ok(write!(s, "{}", render_tmux_template(config)?)?)
-}
-
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
     let config = config::Config::from_env()?;
-
-    // TODO(tatu): Maybe move this under environment or some similar struct
-    let home_path = env::var("HOME").expect("HOME is not set on env, cannot continue");
-    // TODO(tatu): Doesn't support .config in another directory, but I never change this, meh.main
-    let xdg_config_home = Path::new(&home_path).join(".config");
-    let layout_home = xdg_config_home.join("tmuxinator");
 
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
