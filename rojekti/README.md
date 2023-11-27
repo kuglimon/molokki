@@ -23,6 +23,19 @@ commands from Ruby before template generation.
 * bash
 * tmux
 
+## Tips
+
+### Faster startup
+
+Tmux start up isn't free even on a rather fast machine. It's best to start it
+during boot from init/systemd and configure tmux not to shutdown if there are no
+sessions with:
+
+```
+# set this in tmux.conf
+set-option -g exit-empty off
+```
+
 ## Naming
 
 Dialect of a Finnish word for project. I just didn't spend a lot of time
