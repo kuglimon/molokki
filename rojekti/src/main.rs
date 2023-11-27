@@ -12,6 +12,8 @@ use tera::{Context, Tera};
 
 type Result<T> = result::Result<T, Box<dyn Error>>;
 
+mod command;
+
 /// Rojekti - Tmuxinator but rust
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -116,18 +118,6 @@ fn write_tmux_template(s: &mut dyn Write, config: &TmuxScriptTemplate) -> Result
     Ok(write!(s, "{}", render_tmux_template(config)?)?)
 }
 
-// TODO: Does this really have to be this verbose?
-fn path_to_filename(path: DirEntry) -> Result<String> {
-    Ok(path
-        .path()
-        .with_extension("")
-        .file_name()
-        .ok_or("extension error")?
-        .to_str()
-        .ok_or("osstr error")?
-        .to_string())
-}
-
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -140,25 +130,7 @@ fn main() -> Result<()> {
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Commands::List(args) => {
-            let mut paths = fs::read_dir(&layout_home)?;
-
-            {
-                let mut lock = io::stdout().lock();
-                let separator = if args.newline { "\n" } else { " " };
-
-                if let Some(path) = paths.next() {
-                    write!(lock, "{}", path_to_filename(path?)?)?;
-                };
-
-                for path in paths {
-                    write!(lock, "{}{}", separator, path_to_filename(path?)?)?
-                }
-
-                write!(lock, "\n")?;
-            }
-            Ok(())
-        }
+        Commands::List(args) => command::list::run(args.newline),
         Commands::Edit(name) => {
             let project_file = layout_home.join(&name.name).with_extension("yml");
 
