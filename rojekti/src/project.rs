@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::io::Write;
 use std::{collections::BTreeMap, fs};
 use tera::{Context, Tera};
 

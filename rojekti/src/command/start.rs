@@ -1,9 +1,9 @@
-use std::{env, error::Error, io, os::unix::process::CommandExt, process::Command};
+use std::{env, error::Error, os::unix::process::CommandExt, process::Command};
 
 use crate::{config::Config, project::Project, StartArgs};
 
 pub fn run(config: Config, args: &StartArgs, project_name: &str) -> Result<(), Box<dyn Error>> {
-    let project = Project::load(config, args, &args.name)?;
+    let project = Project::load(config, args, project_name)?;
     let script = project.render()?;
 
     // TODO(tatu): Handle errors
