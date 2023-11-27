@@ -25,7 +25,7 @@ fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String, Box<dyn E
     // TOOD(tatu): Add proper error handling
     let mut tera = Tera::default();
     tera.add_raw_template("tmux.sh", include_str!("templates/tmux.sh"))?;
-    Ok(tera.render("tmux.sh", &Context::from_serialize(&config)?)?)
+    Ok(tera.render("tmux.sh", &Context::from_serialize(config)?)?)
 }
 
 impl TmuxScriptTemplate {
@@ -81,7 +81,7 @@ impl Project {
 
             let config: Config = serde_yaml::from_str(&contents).unwrap();
 
-            let tmux_template = TmuxScriptTemplate::build(config, &options)?;
+            let tmux_template = TmuxScriptTemplate::build(config, options)?;
 
             Ok(Project {
                 tmux_script_template: tmux_template,
