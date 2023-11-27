@@ -138,29 +138,7 @@ fn main() -> Result<()> {
         Commands::List(args) => command::list::run(args.newline),
         Commands::Edit(args) => command::edit::run(config, &args.name),
         Commands::Debug(args) => command::debug::run(config, args, &args.name),
-        Commands::Start(name) => {
-            let project_file = layout_home.join(&name.name).with_extension("yml");
-
-            if project_file.is_file() {
-                let contents = fs::read_to_string(project_file)
-                    .expect("Could not read given project file, check permissions");
-
-                let config: Config = serde_yaml::from_str(&contents).unwrap();
-                let tmux_template = TmuxScriptTemplate::build(config, name)?;
-                let script = render_tmux_template(&tmux_template)?;
-
-                // TODO(tatu): Handle errors
-                Command::new(env::var("SHELL").expect("SHELL not set, brother get some help"))
-                    .args(["-c", &script])
-                    .exec();
-
-                Ok(())
-            } else {
-                println!("Given project does not exist or is not a file");
-                // TODO(tatu): We should fall to create in this case
-                Ok(())
-            }
-        }
+        Commands::Start(args) => command::start::run(config, args, &args.name),
     }
 }
 
