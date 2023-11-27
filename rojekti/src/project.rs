@@ -28,6 +28,24 @@ fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String, Box<dyn E
     Ok(tera.render("tmux.sh", &Context::from_serialize(config)?)?)
 }
 
+pub fn render_default_template(
+    project_file: &std::path::PathBuf,
+    project_name: &str,
+) -> Result<String, Box<dyn Error>> {
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "sample_config.yml",
+        include_str!("templates/sample_config.yml"),
+    )?;
+
+    let mut context = Context::new();
+    // FIXME: don't unwrap
+    context.insert("path", project_file.to_str().unwrap());
+    context.insert("name", project_name);
+
+    Ok(tera.render("sample_config.yml", &context)?)
+}
+
 impl TmuxScriptTemplate {
     fn build(config: Config, runtime_args: &StartArgs) -> Result<Self, Box<dyn Error>> {
         let windows = config
