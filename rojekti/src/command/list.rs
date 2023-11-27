@@ -25,19 +25,16 @@ pub fn run(split_by_newline: bool) -> Result<(), Box<dyn Error>> {
 
     let mut paths = fs::read_dir(&layout_home)?;
 
-    {
-        let mut lock = io::stdout().lock();
-        let separator = if split_by_newline { "\n" } else { " " };
+    let separator = if split_by_newline { "\n" } else { " " };
 
-        if let Some(path) = paths.next() {
-            write!(lock, "{}", path_to_filename(path?)?)?;
-        };
+    if let Some(path) = paths.next() {
+        write!(io::stdout(), "{}", path_to_filename(path?)?)?;
+    };
 
-        for path in paths {
-            write!(lock, "{}{}", separator, path_to_filename(path?)?)?
-        }
-
-        write!(lock, "\n")?;
+    for path in paths {
+        write!(io::stdout(), "{}{}", separator, path_to_filename(path?)?)?
     }
+
+    writeln!(io::stdout())?;
     Ok(())
 }
