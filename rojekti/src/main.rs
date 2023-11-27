@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand};
+use project::Project;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs::DirEntry;
@@ -14,6 +15,7 @@ type Result<T> = result::Result<T, Box<dyn Error>>;
 
 mod command;
 mod config;
+mod project;
 
 /// Rojekti - Tmuxinator but rust
 #[derive(Parser)]
@@ -47,7 +49,7 @@ struct ListArgs {
 }
 
 #[derive(Args)]
-struct StartArgs {
+pub struct StartArgs {
     /// Name of the tmux session and project
     name: String,
 
@@ -135,27 +137,7 @@ fn main() -> Result<()> {
     match &cli.command {
         Commands::List(args) => command::list::run(args.newline),
         Commands::Edit(args) => command::edit::run(config, &args.name),
-        Commands::Debug(name) => {
-            let project_file = layout_home.join(&name.name).with_extension("yml");
-
-            if project_file.is_file() {
-                let contents = fs::read_to_string(project_file)
-                    .expect("Could not read given project file, check permissions");
-
-                let config: Config = serde_yaml::from_str(&contents).unwrap();
-
-                let tmux_template = TmuxScriptTemplate::build(config, name)?;
-
-                {
-                    let mut lock = io::stdout().lock();
-                    write_tmux_template(&mut lock, &tmux_template)
-                }
-            } else {
-                println!("Given project does not exist or is not a file");
-                // TODO(tatu): We should fall to create in this case
-                Ok(())
-            }
-        }
+        Commands::Debug(args) => command::debug::run(config, args, &args.name),
         Commands::Start(name) => {
             let project_file = layout_home.join(&name.name).with_extension("yml");
 
