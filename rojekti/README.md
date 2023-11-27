@@ -4,18 +4,19 @@ Tmuxinator but with rust
 
 ## Differences
 
-Made with rust. Ships with one binary with everything statically linked, simple
-installation and no gems/ruby to manage.
+* ships with one binary with everything statically linked
+* simple installation and no gems/ruby/runtime to manage
+* faster, Starting new sessions is around 50% faster
+* not all commands exist or work the same way
+* templates subjectively easier to debug
 
 Ruby startup time is not awesome. While it's not the end of the world it does
-feel annoying. Just listing the command help takes closer to 100ms. There's
-probably room for improvement as well. Starting new sessions is around 50%
-faster but it's still too slow.
+feel annoying. Just the `list` the command help takes closer to 100ms on a beefy
+desktop.
 
-Certain commands don't exist and some are different. For example `start` is a
-combination of `new` and `start` in `tmuxinator`.
-
-Shell script templates it renders are more readable and easier to debug.
+Shell script templates have debugging support and generally try to have less
+variation. More checks are done on the scripts rather than executing shell
+commands from Ruby before template generation.
 
 ## Requirements
 
@@ -27,3 +28,9 @@ Shell script templates it renders are more readable and easier to debug.
 Dialect of a Finnish word for project. I just didn't spend a lot of time
 thinking about the name...
 
+## License
+
+Parts are copied from [tmuxinator](https://github.com/tmuxinator/tmuxinator) and
+thus are likely licensed based on its license.
+
+Otherwise sources follow the repository license.
