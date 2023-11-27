@@ -13,6 +13,7 @@ use tera::{Context, Tera};
 type Result<T> = result::Result<T, Box<dyn Error>>;
 
 mod command;
+mod config;
 
 /// Rojekti - Tmuxinator but rust
 #[derive(Parser)]
@@ -121,6 +122,8 @@ fn write_tmux_template(s: &mut dyn Write, config: &TmuxScriptTemplate) -> Result
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    let config = config::Config::from_env()?;
+
     // TODO(tatu): Maybe move this under environment or some similar struct
     let home_path = env::var("HOME").expect("HOME is not set on env, cannot continue");
     // TODO(tatu): Doesn't support .config in another directory, but I never change this, meh.main
@@ -131,16 +134,7 @@ fn main() -> Result<()> {
     // matches just as you would the top level cmd
     match &cli.command {
         Commands::List(args) => command::list::run(args.newline),
-        Commands::Edit(name) => {
-            let project_file = layout_home.join(&name.name).with_extension("yml");
-
-            Command::new(
-                env::var("EDITOR").expect("Broke ass environment does not have EDITOR set"),
-            )
-            .args([project_file.to_str().ok_or("Not a valid path")?])
-            .status()?;
-            Ok(())
-        }
+        Commands::Edit(args) => command::edit::run(config, &args.name),
         Commands::Debug(name) => {
             let project_file = layout_home.join(&name.name).with_extension("yml");
 
