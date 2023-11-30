@@ -1,12 +1,12 @@
 # Rojekti
 
-Tmuxinator but with rust
+Tmuxinator inspired tmux layout manager.
 
-## Differences
+## Differences with Tmuxinator
 
 * ships with one binary with everything statically linked
-* simple installation and no gems/ruby/runtime to manage
-* faster, Starting new sessions is around 50% faster
+* simple installation, no gems/ruby/runtime to manage
+* starting new sessions is around 50% faster
 * not all commands exist or work the same way
 * templates subjectively easier to debug
 
@@ -22,6 +22,37 @@ commands from Ruby before template generation.
 
 * bash
 * tmux
+* rust (build only)
+
+## Compiling
+
+Use cargo:
+
+```bash
+cargo build --release
+```
+
+## Installing
+
+There's hacky packaging for Arch Linux:
+
+```bash
+cd pkg && makepkg -si
+```
+
+## Debugging
+
+Check what kind of bash template it creates and check it for errors:
+
+```bash
+rojekti debug project_name
+```
+
+If it looks okay then try running with debugging enabled:
+
+```bash
+DEBUG=1 rojekti start project_name
+```
 
 ## Tips
 
