@@ -111,7 +111,96 @@ impl Project {
         }
     }
 
+    pub fn load_str(options: &StartArgs, contents: &str) -> Result<Self, Box<dyn Error>> {
+        let config: Config = serde_yaml::from_str(contents).unwrap();
+
+        let tmux_template = TmuxScriptTemplate::build(config, options)?;
+
+        Ok(Project {
+            tmux_script_template: tmux_template,
+        })
+    }
+
     pub fn render(&self) -> Result<String, Box<dyn Error>> {
         render_tmux_template(&self.tmux_script_template)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, fs};
+
+    use crate::StartArgs;
+
+    use super::Project;
+
+    struct Setup;
+
+    impl Setup {
+        fn init() -> Self {
+            let temp = env::temp_dir().join("rojekti-test");
+            fs::create_dir_all(&temp).expect("could not create test dir");
+
+            env::set_var(
+                "XDG_CONFIG_HOME",
+                temp.to_str().expect("Cannot create temp path"),
+            );
+            Setup {}
+        }
+    }
+
+    impl Drop for Setup {
+        fn drop(&mut self) {
+            let temp = env::temp_dir().join("rojekti-test");
+            env::remove_var("XDG_CONFIG_HOME");
+            fs::remove_dir(&temp).expect("could not create test dir");
+        }
+    }
+
+    #[test]
+    fn it_parses_simple_layouts() {
+        let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
+
+            name: PathOfBuilding
+            root: /home/somebody/development/personal/PathOfBuilding
+
+            windows:
+            - editor: vim -u NONE
+            - backend: "docker compose up --build"
+            - sandbox: null
+            - service: null
+            "###;
+
+        let layout_options = StartArgs {
+            name: "PathOfBuilding".to_string(),
+            no_attach: false,
+        };
+
+        let project = Project::load_str(&layout_options, yaml);
+
+        assert!(project.is_ok(), "should be able to load project layout")
+    }
+
+    #[test]
+    fn it_parses_windows_commands_nil_null_and_empty() {
+        let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
+
+            name: PathOfBuilding
+            root: /home/somebody/development/personal/PathOfBuilding
+
+            windows:
+            - sandbox: nil
+            - service: null
+            - another:
+            "###;
+
+        let layout_options = StartArgs {
+            name: "PathOfBuilding".to_string(),
+            no_attach: false,
+        };
+
+        let project = Project::load_str(&layout_options, yaml);
+
+        assert!(project.is_ok(), "should be able to load project layout")
     }
 }
