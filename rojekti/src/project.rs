@@ -97,13 +97,7 @@ impl Project {
             let contents = fs::read_to_string(project_file)
                 .expect("Could not read given project file, check permissions");
 
-            let config: Config = serde_yaml::from_str(&contents).unwrap();
-
-            let tmux_template = TmuxScriptTemplate::build(config, options)?;
-
-            Ok(Project {
-                tmux_script_template: tmux_template,
-            })
+            Project::load_str(options, &contents)
         } else {
             println!("Given project does not exist or is not a file");
             // TODO(tatu): We should fall to create in this case
