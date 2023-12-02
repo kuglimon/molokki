@@ -36,8 +36,17 @@ cargo build --release
 
 There's hacky packaging for Arch Linux:
 
+### Arch Linux
+
 ```bash
 cd pkg && makepkg -si
+```
+
+### macOS
+
+```bash
+brew tap uncertainschrodinger/tap
+brew install rojekti --head
 ```
 
 ## Debugging
