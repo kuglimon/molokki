@@ -10,13 +10,16 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Result<Self, Box<dyn Error>> {
-        let home_path = env::var("HOME").expect("HOME is not set on env, cannot continue");
-        // TODO(tatu): Doesn't support .config in another directory, but I never change this, meh.main
-        let xdg_config_home = Path::new(&home_path).join(".config");
-        let layout_home = xdg_config_home.join("tmuxinator");
+        let config_home = env::var("XDG_CONFIG_HOME").map_or_else(
+            |_| {
+                Path::new(&env::var("HOME").expect("HOME is not set, no config directory to use"))
+                    .join(".config")
+            },
+            |xdg_config_home| Path::new(&xdg_config_home).to_path_buf(),
+        );
 
-        Ok(Config {
-            layout_path: layout_home,
-        })
+        let layout_path = config_home.join("rojekti");
+
+        Ok(Config { layout_path })
     }
 }

@@ -1,8 +1,9 @@
 use std::error::Error;
+use std::fs;
 use std::fs::DirEntry;
 use std::io::{self, Write};
-use std::path::Path;
-use std::{env, fs};
+
+use crate::config::Config;
 
 // TODO: Does this really have to be this verbose?
 fn path_to_filename(path: DirEntry) -> Result<String, Box<dyn Error>> {
@@ -16,14 +17,8 @@ fn path_to_filename(path: DirEntry) -> Result<String, Box<dyn Error>> {
         .to_string())
 }
 
-pub fn run(split_by_newline: bool) -> Result<(), Box<dyn Error>> {
-    // TODO(tatu): Maybe move this under environment or some similar struct
-    let home_path = env::var("HOME").expect("HOME is not set on env, cannot continue");
-    // TODO(tatu): Doesn't support .config in another directory, but I never change this, meh.main
-    let xdg_config_home = Path::new(&home_path).join(".config");
-    let layout_home = xdg_config_home.join("tmuxinator");
-
-    let mut paths = fs::read_dir(&layout_home)?;
+pub fn run(config: Config, split_by_newline: bool) -> Result<(), Box<dyn Error>> {
+    let mut paths = fs::read_dir(&config.layout_path)?;
 
     let separator = if split_by_newline { "\n" } else { " " };
 
