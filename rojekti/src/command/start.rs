@@ -1,8 +1,9 @@
-use std::{env, error::Error, os::unix::process::CommandExt, process::Command};
+use std::{env, os::unix::process::CommandExt, process::Command};
 
+use crate::error::Result;
 use crate::{config::Config, project::Project, StartArgs};
 
-pub fn run(config: Config, args: &StartArgs, project_name: &str) -> Result<(), Box<dyn Error>> {
+pub fn run(config: Config, args: &StartArgs, project_name: &str) -> Result<()> {
     let project = Project::load(config, args, project_name)?;
     let script = project.render()?;
 

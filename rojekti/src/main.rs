@@ -1,11 +1,9 @@
+use crate::error::Result;
 use clap::{Args, Parser, Subcommand};
-use std::error::Error;
-use std::result;
-
-type Result<T> = result::Result<T, Box<dyn Error>>;
 
 mod command;
 mod config;
+mod error;
 mod project;
 
 /// Rojekti - Tmuxinator but rust

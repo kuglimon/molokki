@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::{collections::BTreeMap, fs};
 use tera::{Context, Tera};
 
+use crate::error::Result;
 use crate::{config, StartArgs};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -21,7 +21,7 @@ struct TmuxScriptTemplate {
     name: String,
 }
 
-fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String, Box<dyn Error>> {
+fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String> {
     // TOOD(tatu): Add proper error handling
     let mut tera = Tera::default();
     tera.add_raw_template("tmux.sh", include_str!("templates/tmux.sh"))?;
@@ -31,7 +31,7 @@ fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String, Box<dyn E
 pub fn render_default_template(
     project_file: &std::path::PathBuf,
     project_name: &str,
-) -> Result<String, Box<dyn Error>> {
+) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template(
         "sample_config.yml",
@@ -47,7 +47,7 @@ pub fn render_default_template(
 }
 
 impl TmuxScriptTemplate {
-    fn build(config: Config, runtime_args: &StartArgs) -> Result<Self, Box<dyn Error>> {
+    fn build(config: Config, runtime_args: &StartArgs) -> Result<Self> {
         let windows = config
             .windows
             .iter()
@@ -86,11 +86,7 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn load(
-        config: config::Config,
-        options: &StartArgs,
-        project_name: &str,
-    ) -> Result<Self, Box<dyn Error>> {
+    pub fn load(config: config::Config, options: &StartArgs, project_name: &str) -> Result<Self> {
         let project_file = config.layout_path.join(project_name).with_extension("yml");
 
         if project_file.is_file() {
@@ -105,7 +101,7 @@ impl Project {
         }
     }
 
-    pub fn load_str(options: &StartArgs, contents: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn load_str(options: &StartArgs, contents: &str) -> Result<Self> {
         let config: Config = serde_yaml::from_str(contents).unwrap();
 
         let tmux_template = TmuxScriptTemplate::build(config, options)?;
@@ -115,7 +111,7 @@ impl Project {
         })
     }
 
-    pub fn render(&self) -> Result<String, Box<dyn Error>> {
+    pub fn render(&self) -> Result<String> {
         render_tmux_template(&self.tmux_script_template)
     }
 }
