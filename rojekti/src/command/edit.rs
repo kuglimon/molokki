@@ -1,4 +1,3 @@
-use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
@@ -15,7 +14,7 @@ pub fn run(config: Config, project_name: &str) -> Result<(), Box<dyn Error>> {
         file.write_all(render_default_template(&project_file, project_name)?.as_bytes())?;
     }
 
-    Command::new(env::var("EDITOR").expect("Broke ass environment does not have EDITOR set"))
+    Command::new(config.editor)
         .args([project_file.to_str().ok_or("Not a valid path")?])
         .status()?;
 

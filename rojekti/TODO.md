@@ -3,3 +3,5 @@
 * code is poc and ugly as fuck
 * integrate with worktrees directly?
     * probably first i'll fix it in tat
+* add integration test support asserting external process state
+    * testing EDITOR requires this

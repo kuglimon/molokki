@@ -5,6 +5,7 @@ use std::{
 
 pub struct Config {
     pub layout_path: PathBuf,
+    pub editor: String,
 }
 
 impl Config {
@@ -18,7 +19,11 @@ impl Config {
         );
 
         let layout_path = config_home.join("rojekti");
+        let editor = env::var("EDITOR").unwrap_or("vi".to_string());
 
-        Config { layout_path }
+        Config {
+            layout_path,
+            editor,
+        }
     }
 }
