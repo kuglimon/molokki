@@ -73,6 +73,28 @@ impl TmuxScriptTemplate {
     }
 }
 
+pub enum ProjectState {
+    New(NewProject),
+    Exists(Project),
+}
+
+impl ProjectState {
+    pub fn load(config: &config::Config, options: &StartArgs, project_name: &str) -> Result<Self> {
+        let project_file = config.layout_path.join(project_name).with_extension("yml");
+
+        if project_file.is_file() {
+            let contents = fs::read_to_string(project_file)
+                .expect("Could not read given project file, check permissions");
+
+            Ok(ProjectState::Exists(Project::load_str(options, &contents)?))
+        } else {
+            Ok(ProjectState::New(NewProject {}))
+        }
+    }
+}
+
+pub struct NewProject {}
+
 // TODO(tatu): Add default values
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Config {
@@ -86,22 +108,7 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn load(config: config::Config, options: &StartArgs, project_name: &str) -> Result<Self> {
-        let project_file = config.layout_path.join(project_name).with_extension("yml");
-
-        if project_file.is_file() {
-            let contents = fs::read_to_string(project_file)
-                .expect("Could not read given project file, check permissions");
-
-            Project::load_str(options, &contents)
-        } else {
-            println!("Given project does not exist or is not a file");
-            // TODO(tatu): We should fall to create in this case
-            unimplemented!("Loading missing projects not implemented!");
-        }
-    }
-
-    pub fn load_str(options: &StartArgs, contents: &str) -> Result<Self> {
+    fn load_str(options: &StartArgs, contents: &str) -> Result<Self> {
         let config: Config = serde_yaml::from_str(contents).unwrap();
 
         let tmux_template = TmuxScriptTemplate::build(config, options)?;
