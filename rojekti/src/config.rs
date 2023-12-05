@@ -6,6 +6,7 @@ use std::{
 pub struct Config {
     pub layout_path: PathBuf,
     pub editor: String,
+    pub pwd: PathBuf,
 }
 
 impl Config {
@@ -20,10 +21,13 @@ impl Config {
 
         let layout_path = config_home.join("rojekti");
         let editor = env::var("EDITOR").unwrap_or("vi".to_string());
+        // TODO(tatu): this might not be required for all cases
+        let pwd = env::current_dir().expect("PWD does not exist, cannot continue");
 
         Config {
             layout_path,
             editor,
+            pwd,
         }
     }
 }

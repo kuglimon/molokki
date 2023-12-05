@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::{collections::BTreeMap, fs};
 use tera::{Context, Tera};
 
@@ -31,6 +32,7 @@ fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String> {
 pub fn render_default_template(
     project_file: &std::path::PathBuf,
     project_name: &str,
+    pwd: &PathBuf,
 ) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template(
@@ -42,6 +44,7 @@ pub fn render_default_template(
     // FIXME: don't unwrap
     context.insert("path", project_file.to_str().unwrap());
     context.insert("name", project_name);
+    context.insert("pwd", pwd);
 
     Ok(tera.render("sample_config.yml", &context)?)
 }

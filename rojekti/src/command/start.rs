@@ -16,7 +16,9 @@ pub fn run(config: Config, args: &StartArgs, project_name: &str) -> Result<()> {
 
             if !project_file.is_file() {
                 let mut file = File::create(&project_file)?;
-                file.write_all(render_default_template(&project_file, project_name)?.as_bytes())?;
+                file.write_all(
+                    render_default_template(&project_file, project_name, &config.pwd)?.as_bytes(),
+                )?;
             }
 
             Command::new(config.editor)

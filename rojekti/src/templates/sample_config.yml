@@ -1,7 +1,7 @@
 # {{ path }}
 
 name: {{ name }}
-root: {{ path }}
+root: {{ pwd }}
 
 # Optional tmux socket
 # socket_name: foo
