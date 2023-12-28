@@ -106,7 +106,8 @@ impl Project {
                     .to_string();
 
                 let command = match raw_command.as_str() {
-                    "nil" => None,
+                    "nil" | "null" => None,
+                    c if c.is_empty() => None,
                     c => Some(c.to_string()),
                 };
 
@@ -136,7 +137,7 @@ impl Project {
 #[cfg(test)]
 mod tests {
     use super::Project;
-    use crate::StartArgs;
+    use crate::{project::PanelConfig, StartArgs};
 
     #[test]
     fn it_parses_simple_layouts() {
@@ -182,6 +183,16 @@ mod tests {
 
         let project = Project::load_str(&layout_options, yaml);
 
-        assert!(project.is_ok(), "should be able to load project layout")
+        assert!(project.is_ok(), "should be able to load project layout");
+
+        let project = project.unwrap();
+
+        for window in &project.windows {
+            match &window.panels {
+                PanelConfig::SinglePanel(config) => {
+                    assert!(config.command.is_none(), "should be an empty command")
+                }
+            }
+        }
     }
 }
