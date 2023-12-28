@@ -6,23 +6,7 @@ use tera::{Context, Tera};
 use crate::error::Result;
 use crate::{config, StartArgs};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct TmuxWindowConfig {
-    name: String,
-    command: String,
-}
-
-// TODO(tatu): Rename to project config
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct TmuxScriptTemplate {
-    is_new_tmux_session: bool,
-    attach: bool,
-    windows: Vec<TmuxWindowConfig>,
-    root: String,
-    name: String,
-}
-
-fn render_tmux_template(config: &TmuxScriptTemplate) -> Result<String> {
+fn render_tmux_template(config: &Project) -> Result<String> {
     // TOOD(tatu): Add proper error handling
     let mut tera = Tera::default();
     tera.add_raw_template("tmux.sh", include_str!("templates/tmux.sh"))?;
@@ -47,33 +31,6 @@ pub fn render_default_template(
     context.insert("pwd", pwd);
 
     Ok(tera.render("sample_config.yml", &context)?)
-}
-
-impl TmuxScriptTemplate {
-    fn build(config: Config, runtime_args: &StartArgs) -> Result<Self> {
-        let windows = config
-            .windows
-            .iter()
-            .map(|window_config| TmuxWindowConfig {
-                name: window_config.first_key_value().unwrap().0.to_string(),
-                command: window_config
-                    .first_key_value()
-                    .unwrap()
-                    .1
-                    .as_ref()
-                    .unwrap_or(&"".to_string())
-                    .to_string(),
-            })
-            .collect();
-
-        Ok(TmuxScriptTemplate {
-            is_new_tmux_session: false,
-            attach: !runtime_args.no_attach,
-            windows,
-            name: config.name,
-            root: config.root.unwrap_or(".".to_string()),
-        })
-    }
 }
 
 pub enum ProjectState {
@@ -106,23 +63,73 @@ struct Config {
     windows: Vec<BTreeMap<String, Option<String>>>,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Project {
-    tmux_script_template: TmuxScriptTemplate,
+    root: String,
+    name: String,
+    attach: bool,
+    windows: Vec<Window>,
+    is_new_tmux_session: bool,
+}
+
+// SinglePanel(Panel),
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub enum PanelConfig {
+    SinglePanel(Panel),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Window {
+    name: String,
+    panels: PanelConfig,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Panel {
+    command: Option<String>,
 }
 
 impl Project {
     fn load_str(options: &StartArgs, contents: &str) -> Result<Self> {
         let config: Config = serde_yaml::from_str(contents).unwrap();
 
-        let tmux_template = TmuxScriptTemplate::build(config, options)?;
+        let windows = config
+            .windows
+            .iter()
+            .map(|window_config| {
+                let raw_command = window_config
+                    .first_key_value()
+                    .unwrap()
+                    .1
+                    .as_ref()
+                    .unwrap_or(&"".to_string())
+                    .to_string();
+
+                let command = match raw_command.as_str() {
+                    "nil" => None,
+                    c => Some(c.to_string()),
+                };
+
+                let panels = PanelConfig::SinglePanel(Panel { command });
+
+                Window {
+                    name: window_config.first_key_value().unwrap().0.to_string(),
+                    panels,
+                }
+            })
+            .collect();
 
         Ok(Project {
-            tmux_script_template: tmux_template,
+            is_new_tmux_session: false,
+            attach: !options.no_attach,
+            windows,
+            name: config.name,
+            root: config.root.unwrap_or(".".to_string()),
         })
     }
 
     pub fn render(&self) -> Result<String> {
-        render_tmux_template(&self.tmux_script_template)
+        render_tmux_template(&self)
     }
 }
 
