@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::path::PathBuf;
 use std::{collections::BTreeMap, fs};
 use tera::{Context, Tera};
@@ -106,6 +107,61 @@ struct Config {
     windows: Vec<BTreeMap<String, Option<String>>>,
 }
 
+// TODO(tatu): Add default values
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct YamlConfig {
+    name: String,
+    root: Option<String>,
+    windows: Vec<BTreeMap<String, Option<WindowConfiguration>>>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+enum WindowConfiguration {
+    SinglePane(String),
+    MultiPane(MultiPaneLayout),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct MultiPaneLayout {}
+
+impl From<YamlConfig> for ProjectConfiguration {
+    fn from(config: YamlConfig) -> Self {
+        let windows = config
+            .windows
+            .iter()
+            .map(|window| {
+                let (name, _config) = window.last_key_value().unwrap();
+                Window {
+                    name: name.to_string(),
+                }
+            })
+            .collect::<Vec<Window>>();
+
+        ProjectConfiguration {
+            name: config.name,
+            // TODO(tatu): Shouldn't hardcode these at this level
+            root: config.root.unwrap_or(env::var("HOME").unwrap()),
+            windows,
+        }
+    }
+}
+
+pub struct ProjectConfiguration {
+    name: String,
+    root: String,
+    windows: Vec<Window>,
+}
+
+struct Window {
+    name: String,
+}
+
+enum Pane {
+    Single(String),
+    Multi(),
+}
+
 pub struct Project {
     tmux_script_template: TmuxScriptTemplate,
 }
@@ -176,5 +232,31 @@ mod tests {
         let project = Project::load_str(&layout_options, yaml);
 
         assert!(project.is_ok(), "should be able to load project layout")
+    }
+
+    #[test]
+    fn it_parses_config() {
+        let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
+
+            name: PathOfBuilding
+            root: /home/somebody/development/personal/PathOfBuilding
+
+            windows:
+            - sandbox: nil
+            - service: null
+            - another:
+            "###;
+
+        let config: super::YamlConfig = serde_yaml::from_str(yaml).unwrap();
+        println!("got {:?}", config);
+
+        // assert!(config., "should be able to load project layout")
+    }
+
+    #[test]
+    fn it_generates_bash_script() {
+        let panels = vec![Panel::new(command: None)];
+        let main_window = Window::new(layout: PanelLayout:Vertical, panels: panels);
+        let project = Project::new(windows: vec![main_window]);
     }
 }
