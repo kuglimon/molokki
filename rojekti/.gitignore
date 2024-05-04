@@ -3,3 +3,6 @@
 # arch linux packaging
 pkg/*
 !pkg/PKGBUILD
+
+# link to build in nix store
+result
