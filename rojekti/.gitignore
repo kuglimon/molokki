@@ -1,4 +1,5 @@
 /target
 
+# arch linux packaging
 pkg/*
 !pkg/PKGBUILD
