@@ -55,11 +55,31 @@ impl ProjectState {
 
 pub struct NewProject {}
 
+
 // TODO(tatu): Add default values
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct Config {
+pub struct Config {
     name: String,
     root: Option<String>,
+    socket_name: Option<String>,
+    on_project_start: Option<String>,
+    on_project_first_start: Option<String>,
+    on_project_restart: Option<String>,
+    on_project_exit: Option<String>,
+    on_project_stop: Option<String>,
+    pre_window: Option<String>,
+    tmux_options: Option<String>,
+    tmux_command: Option<String>,
+    startup_window: Option<String>,
+    startup_pane: Option<u64>,
+
+    #[serde(default)]
+    attach: bool,
+
+    #[serde(default)]
+    enable_pane_titles: bool,
+    pane_title_position: Option<String>,
+    pane_title_format: Option<String>,
     windows: Vec<BTreeMap<String, Option<String>>>,
 }
 
@@ -136,7 +156,7 @@ impl Project {
 
 #[cfg(test)]
 mod tests {
-    use super::Project;
+    use super::{Project, Config};
     use crate::{project::PanelConfig, StartArgs};
 
     #[test]
@@ -194,5 +214,102 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn it_parses_full_layout() {
+        let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
+
+            name: sample
+            root: ~/
+
+            # Optional tmux socket
+            socket_name: foo
+
+            # Note that the pre and post options have been deprecated and will be replaced by
+            # project hooks.
+
+            # Project hooks
+
+            # Runs on project start, always
+            on_project_start: command-project-start
+
+            # Run on project start, the first time
+            on_project_first_start: command-project-first-start
+
+            # Run on project start, after the first time
+            on_project_restart: command-on-project-restart
+
+            # Run on project exit ( detaching from tmux session )
+            on_project_exit: command-on-project-exit
+
+            # Run on project stop
+            on_project_stop: command-on-project-stop
+
+            # Runs in each window and pane before window/pane specific commands. Useful for setting up interpreter versions.
+            pre_window: rbenv shell 2.0.0-p247
+
+            # Pass command line options to tmux. Useful for specifying a different tmux.conf.
+            tmux_options: -f ~/.tmux.mac.conf
+
+            # Change the command to call tmux. This can be used by derivatives/wrappers like byobu.
+            tmux_command: byobu
+
+            # Specifies (by name or index) which window will be selected on project startup. If not set, the first window is used.
+            startup_window: editor
+
+            # Specifies (by index) which pane of the specified window will be selected on project startup. If not set, the first pane is used.
+            startup_pane: 1
+
+            # Controls whether the tmux session should be attached to automatically. Defaults to true.
+            attach: false
+
+            # Enables the display of pane titles. For example "editor" below. Defaults to false.
+            enable_pane_titles: true
+
+            # Configures pane title position. Can be: bottom, top, or "off". Note: "off" must be provided in quotes to avoid being interpreted as a boolean false. Defaults to top.
+            pane_title_position: bottom
+
+            # Configures pane title format. Defaults to "#{pane_index}: #{pane_title}".
+            # Please see the tmux manpage for details, on valid formats.
+            pane_title_format: " [ #T ] "
+
+            windows:
+            - editor:
+                # layout: main-vertical
+                # Synchronize all panes of this window, can be enabled before or after the pane commands run.
+                # 'before' represents legacy functionality and will be deprecated in a future release, in favour of 'after'
+                # synchronize: after
+                # panes:
+                   # - editor:
+                   # - vim
+                   # - guard
+            - server: bundle exec rails s
+            - logs: tail -f log/development.log
+            "###;
+
+        let config: Result<Config, _> = serde_yaml::from_str(yaml);
+
+        assert!(config.is_ok(), "should be able to parse config yaml");
+
+        let config = config.unwrap();
+
+        assert!(config.name == "sample");
+        assert!(config.root == Some("~/".to_string()));
+        assert!(config.socket_name == Some("foo".to_string()));
+        assert!(config.on_project_start == Some("command-project-start".to_string()));
+        assert!(config.on_project_first_start == Some("command-project-first-start".to_string()));
+        assert!(config.on_project_restart == Some("command-on-project-restart".to_string()));
+        assert!(config.on_project_exit == Some("command-on-project-exit".to_string()));
+        assert!(config.on_project_stop == Some("command-on-project-stop".to_string()));
+        assert!(config.pre_window == Some("rbenv shell 2.0.0-p247".to_string()));
+        assert!(config.tmux_options == Some("-f ~/.tmux.mac.conf".to_string()));
+        assert!(config.tmux_command == Some("byobu".to_string()));
+        assert!(config.startup_window == Some("editor".to_string()));
+        assert!(config.startup_pane == Some(1));
+        assert!(!config.attach);
+        assert!(config.enable_pane_titles);
+        assert!(config.pane_title_position == Some("bottom".to_string()));
+        assert!(config.pane_title_format == Some(" [ #T ] ".to_string()));
     }
 }
