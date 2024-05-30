@@ -16,6 +16,9 @@
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = with pkgs; [
         cargo
+
+        # tmuxinator for testing feature parity
+        (ruby.withPackages (ps: with ps; [ tmuxinator ]))
       ];
     };
   };
