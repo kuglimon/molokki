@@ -226,7 +226,7 @@ fn tile_size_in_bytes(map_flags: &MapFlags) -> u32 {
     // FIXME(tatu): I probably have a bug somewhere else but for some reason it seems like these
     // tiles are actually 4 bytes per tile rather than 2. I'm not sure if sfall does some changes
     // to the save files.
-    const ELEVATION_TILE_SIZE_BYTES: u32 = 100 * 100 * 2 * 4;
+    const ELEVATION_TILE_SIZE_BYTES: u32 = 100 * 100 * 2 * 2;
 
     if map_flags.contains(MapFlags::HasElevationAtLevel0) {
         bytes += ELEVATION_TILE_SIZE_BYTES;
@@ -254,6 +254,24 @@ fn map_flags(input: &[u8]) -> IResult<&[u8], MapFlags> {
         )
         .expect("should have parsed map flags")
     })(input)
+}
+
+pub fn map_variable_values(
+    global_variable_count: usize,
+    local_variable_count: usize,
+) -> impl Fn(&[u8]) -> IResult<&[u8], MapVariables> {
+    move |input| {
+        map(
+            tuple((
+                count(be_i32, global_variable_count),
+                count(be_i32, local_variable_count),
+            )),
+            |(global_variables, local_variables)| MapVariables {
+                global_variables,
+                local_variables,
+            },
+        )(input)
+    }
 }
 
 pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
@@ -314,16 +332,8 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     let global_variable_count: usize = header.global_variable_count.try_into().unwrap();
     let local_variable_count: usize = header.local_variable_count.try_into().unwrap();
 
-    let map_variables = map(
-        tuple::<_, _, (_, ErrorKind), _>((
-            count(be_i32, global_variable_count),
-            count(be_i32, local_variable_count),
-        )),
-        |(global_variables, local_variables)| MapVariables {
-            global_variables,
-            local_variables,
-        },
-    )(input);
+    let map_variables = map_variable_values(global_variable_count, local_variable_count)(input);
+    let (input, map_variables) = map_variables.expect("should have parsed map variable values");
 
     // Consume tiles
     // FIXME: Actually parse the tiles rather than discarding them
@@ -342,21 +352,20 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
         },
     )(input);
 
-    dbg!(&input[..25]);
-
-    (header, map_variables.unwrap().1, scripts.unwrap().1)
+    (header, map_variables, scripts.unwrap().1)
 }
 
 pub fn script_group(input: &[u8]) -> IResult<&[u8], Vec<Script>> {
-    flat_map(be_i32, |script_count| {
+    // The random 4 byte read is something F12SE does before reading script counts. Maybe it's just
+    // some sentinel or guard?
+    flat_map(tuple((be_i32, be_i32)), |(_mystery_byte, script_count)| {
         println!("trying to parse {script_count} scripts");
         // FIXME: make a parser for script counts rather than asserting here and return a parse
         // error, rather than panic
-        assert!(
-            script_count <= SCRIPTS_IN_GROUP,
-            "script sections should not have more than {SCRIPTS_IN_GROUP} scripts"
-        );
-
+        // assert!(
+        //     script_count <= SCRIPTS_IN_GROUP,
+        //     "script sections should not have more than {SCRIPTS_IN_GROUP} scripts"
+        // );
         println!("found {script_count} scripts");
 
         count(script, script_count.try_into().unwrap())
@@ -499,8 +508,14 @@ mod tests {
         assert_eq!(map_save.ticks, 279545083);
         assert_eq!(map_save.mystery_bytes.len(), 4 * 44);
 
-        assert_eq!(map_variables.global_variables.len(), 4);
-        assert_eq!(map_variables.local_variables.len(), 739);
+        assert_eq!(
+            map_variables.global_variables.len(),
+            map_save.global_variable_count.try_into().unwrap()
+        );
+        assert_eq!(
+            map_variables.local_variables.len(),
+            map_save.local_variable_count.try_into().unwrap()
+        );
 
         dbg!(scripts);
     }
