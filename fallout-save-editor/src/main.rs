@@ -2,13 +2,13 @@ use flate2::read::GzDecoder;
 // Documentation here is based on and copied from:
 // https://falloutmods.fandom.com/wiki/SAVE.DAT_File_Format
 //
-// TODO(tatu): implement wrapper type that understands binary offsets/spans per field. TODO(tatu):
-// implement wrapper type that preserves original binary and provides better view
+// TODO(tatu): implement wrapper type that understands binary offsets/spans per field.
+// TODO(tatu): implement wrapper type that preserves original binary and provides better view
 use nom::{
     bytes::streaming::{take, take_until},
     combinator::{flat_map, map},
     error::ErrorKind,
-    multi::count,
+    multi::{count, fold_many_m_n},
     number::streaming::{be_i32, be_u16, be_u32, be_u8},
     sequence::tuple,
     IResult,
@@ -19,8 +19,8 @@ use bitflags::bitflags;
 use std::io::Read;
 use std::str;
 
-const SCRIPT_GROUP_COUNT: u32 = 5;
-const SCRIPTS_IN_GROUP: u32 = 16;
+const SCRIPT_GROUP_COUNT: usize = 5;
+const SCRIPTS_IN_GROUP: i32 = 16;
 
 enum MapVersion {
     Fallout1 = 19,
@@ -183,8 +183,8 @@ pub struct MapHeader {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MapVariables {
-    pub global_variables: Vec<u32>,
-    pub local_variables: Vec<u32>,
+    pub global_variables: Vec<i32>,
+    pub local_variables: Vec<i32>,
 }
 
 // A lot of the fields are unknown. We've left them in the struct to make it obvious what the
@@ -223,7 +223,10 @@ pub struct Script {
 fn tile_size_in_bytes(map_flags: &MapFlags) -> u32 {
     let mut bytes = 0;
 
-    const ELEVATION_TILE_SIZE_BYTES: u32 = 100 * 100 * 2 * 2;
+    // FIXME(tatu): I probably have a bug somewhere else but for some reason it seems like these
+    // tiles are actually 4 bytes per tile rather than 2. I'm not sure if sfall does some changes
+    // to the save files.
+    const ELEVATION_TILE_SIZE_BYTES: u32 = 100 * 100 * 2 * 4;
 
     if map_flags.contains(MapFlags::HasElevationAtLevel0) {
         bytes += ELEVATION_TILE_SIZE_BYTES;
@@ -285,8 +288,9 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
             ticks,
             mystery_bytes,
         )| {
-            dbg!(&flags);
             println!("flags: {:#032b}", &flags);
+            println!("gvars: {global_variable_count}");
+            println!("lvars: {local_variable_count}");
             MapHeader {
                 version,
                 filename,
@@ -312,8 +316,8 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
 
     let map_variables = map(
         tuple::<_, _, (_, ErrorKind), _>((
-            count(be_u32, global_variable_count),
-            count(be_u32, local_variable_count),
+            count(be_i32, global_variable_count),
+            count(be_i32, local_variable_count),
         )),
         |(global_variables, local_variables)| MapVariables {
             global_variables,
@@ -323,67 +327,87 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
 
     // Consume tiles
     // FIXME: Actually parse the tiles rather than discarding them
-    // FIXME: I think this might be fucked/wrong
     let (input, _) =
         take::<_, _, (_, ErrorKind)>(tile_size_in_bytes(&header.flags))(input).unwrap();
 
-    let scripts = flat_map(be_u32, |script_count| {
+    let scripts = fold_many_m_n(
+        SCRIPT_GROUP_COUNT,
+        SCRIPT_GROUP_COUNT,
+        script_group,
+        || Vec::new(),
+        |acc, scripts| {
+            let size = scripts.len();
+            println!("got {size} new scripts");
+            [acc, scripts].concat()
+        },
+    )(input);
+
+    dbg!(&input[..25]);
+
+    (header, map_variables.unwrap().1, scripts.unwrap().1)
+}
+
+pub fn script_group(input: &[u8]) -> IResult<&[u8], Vec<Script>> {
+    flat_map(be_i32, |script_count| {
+        println!("trying to parse {script_count} scripts");
         // FIXME: make a parser for script counts rather than asserting here and return a parse
         // error, rather than panic
         assert!(
             script_count <= SCRIPTS_IN_GROUP,
-            "script sections should not have more than 16 scripts"
+            "script sections should not have more than {SCRIPTS_IN_GROUP} scripts"
         );
 
         println!("found {script_count} scripts");
 
-        map(
-            tuple::<_, _, (_, ErrorKind), _>((
-                be_u32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32,
-                be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32,
-            )),
-            |(
-                pid,
-                next_script,
-                trigger_type,
-                radius,
-                flags,
-                id,
-                _unknown5,
-                object_id,
-                local_variable_offset,
-                local_variable_count,
-                _unknown9,
-                _unknown10,
-                _unknown11,
-                _unknown12,
-                _unknown13,
-                _unknown14,
-                _unknown15,
-                _unknown16,
-            )| Script {
-                pid,
-                next_script,
-                trigger_type,
-                radius,
-                flags,
-                id,
-                _unknown5,
-                object_id,
-                local_variable_offset,
-                local_variable_count,
-                _unknown9,
-                _unknown10,
-                _unknown11,
-                _unknown13,
-                _unknown14,
-                _unknown15,
-                _unknown16,
-            },
-        )
-    })(input);
+        count(script, script_count.try_into().unwrap())
+    })(input)
+}
 
-    (header, map_variables.unwrap().1, vec![scripts.unwrap().1])
+pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
+    map(
+        tuple((
+            be_u32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32,
+            be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32,
+        )),
+        |(
+            pid,
+            next_script,
+            trigger_type,
+            radius,
+            flags,
+            id,
+            _unknown5,
+            object_id,
+            local_variable_offset,
+            local_variable_count,
+            _unknown9,
+            _unknown10,
+            _unknown11,
+            _unknown12,
+            _unknown13,
+            _unknown14,
+            _unknown15,
+            _unknown16,
+        )| Script {
+            pid,
+            next_script,
+            trigger_type,
+            radius,
+            flags,
+            id,
+            _unknown5,
+            object_id,
+            local_variable_offset,
+            local_variable_count,
+            _unknown9,
+            _unknown10,
+            _unknown11,
+            _unknown13,
+            _unknown14,
+            _unknown15,
+            _unknown16,
+        },
+    )(input)
 }
 
 pub fn try_decompress_dat2(input: Vec<u8>) -> Vec<u8> {
@@ -451,8 +475,6 @@ mod tests {
     fn parses_map_save() {
         let decompressed = try_decompress_dat2(NCR1_SAVE.to_vec());
         let (map_save, map_variables, scripts) = dat2(&decompressed);
-
-        dbg!(&map_save.flags);
 
         assert_eq!(map_save.version, MapVersion::Fallout2 as u32);
         assert_eq!(map_save.filename, "NCR1.SAV".to_string());
