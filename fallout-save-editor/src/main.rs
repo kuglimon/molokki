@@ -5,16 +5,21 @@ use flate2::read::GzDecoder;
 //
 use nom::{
     bytes::streaming::take,
-    combinator::map,
+    combinator::{flat_map, map},
     error::{Error, ErrorKind},
     multi::count,
-    number::streaming::{be_u16, be_u32, be_u8},
+    number::streaming::{be_i32, be_u16, be_u32, be_u8},
     sequence::tuple,
     IResult,
 };
 
+use bitflags::bitflags;
+
 use std::io::Read;
 use std::str;
+
+const SCRIPT_GROUP_COUNT: u32 = 5;
+const SCRIPTS_IN_GROUP: u32 = 16;
 
 enum MapVersion {
     Fallout1 = 19,
@@ -142,18 +147,31 @@ pub fn header(input: &[u8]) -> IResult<&[u8], SaveHeader> {
     )(input)
 }
 
+bitflags! {
+    #[derive(Clone, Debug, PartialEq)]
+    pub struct MapFlags: i32 {
+        const IsMapSave = 0b00000001;
+        const HasElevationAtLevel0 = 0b00000010;
+        const HasElevationAtLevel1 = 0b00000100;
+        const HasElevationAtLevel2 = 0b00001000;
+
+        // More flags exist, but I don't know what they are for. This allows those to exist.
+        const _ = !0;
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct MapHeader {
     pub version: u32,
     pub filename: String,
-    pub default_player_position: u32,
-    pub default_player_elevation: u32,
-    pub default_player_orientation: u32,
-    pub local_variable_count: u32,
-    pub flags: u32,
-    pub darkness: u32,
-    pub global_variable_count: u32,
-    pub id: u32,
+    pub default_player_position: i32,
+    pub default_player_elevation: i32,
+    pub default_player_orientation: i32,
+    pub local_variable_count: i32,
+    pub flags: MapFlags,
+    pub darkness: i32,
+    pub global_variable_count: i32,
+    pub id: i32,
     pub ticks: u32,
 }
 
@@ -163,19 +181,68 @@ pub struct MapVariables {
     pub local_variables: Vec<u32>,
 }
 
-pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables) {
+// A lot of the fields are unknown. We've left them in the struct to make it obvious what the
+// format is. Rather than having the parser jump over some random bytes. This way you don't have to
+// jump around from the sources to the internet to check why we're skipping some offsets.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Script {
+    pub pid: u32,
+
+    // Not used, I guess it should be -1 always according to some documentation.
+    pub next_script: i32,
+    pub trigger_type: i32,
+    pub radius: i32,
+    pub flags: i32,
+    pub id: i32,
+    pub _unknown5: i32,
+    pub object_id: i32,
+
+    // Should be -1 in map files and set to some value in saves
+    pub local_variable_offset: i32,
+
+    // Should be 0 in map files and set to some value in saves
+    pub local_variable_count: i32,
+
+    pub _unknown9: i32,
+    pub _unknown10: i32,
+    pub _unknown11: i32,
+    pub _unknown13: i32,
+    pub _unknown14: i32,
+    pub _unknown15: i32,
+    pub _unknown16: i32,
+}
+
+fn tile_size(map_flags: &MapFlags) -> u32 {
+    let mut tiles = 0;
+
+    if map_flags.contains(MapFlags::HasElevationAtLevel0) {
+        tiles += 40000;
+    }
+
+    if map_flags.contains(MapFlags::HasElevationAtLevel1) {
+        tiles += 40000;
+    }
+
+    if map_flags.contains(MapFlags::HasElevationAtLevel2) {
+        tiles += 40000;
+    }
+
+    tiles
+}
+
+pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     let header = map(
         tuple((
             be_u32,
             map_name,
-            be_u32,
-            be_u32,
-            be_u32,
-            be_u32,
-            be_u32,
-            be_u32,
-            be_u32,
-            be_u32,
+            be_i32,
+            be_i32,
+            be_i32,
+            be_i32,
+            be_i32,
+            be_i32,
+            be_i32,
+            be_i32,
             be_u32,
             take(4u32 * 44u32), // unknown mystery bytes
         )),
@@ -198,7 +265,7 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables) {
             default_player_position,
             default_player_elevation,
             default_player_orientation,
-            flags,
+            flags: MapFlags::from_bits(flags).expect("should have parsed map flags"),
             darkness,
             global_variable_count,
             id,
@@ -223,7 +290,66 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables) {
         },
     )(input);
 
-    (header, map_variables.unwrap().1)
+    // Consume tiles
+    // FIXME: Actually parse the tiles rather than discarding them
+    // FIXME: I think this might be fucked/wrong
+    let (input, _) = take::<_, _, (_, ErrorKind)>(tile_size(&header.flags))(input).unwrap();
+
+    let scripts = flat_map(be_u32, |script_count| {
+        // FIXME: make a parser for script counts rather than asserting here and return a parse
+        // error, rather than panic
+        assert!(
+            script_count <= SCRIPTS_IN_GROUP,
+            "script sections should not have more than 16 scripts"
+        );
+
+        map(
+            tuple::<_, _, (_, ErrorKind), _>((
+                be_u32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32,
+                be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32,
+            )),
+            |(
+                pid,
+                next_script,
+                trigger_type,
+                radius,
+                flags,
+                id,
+                _unknown5,
+                object_id,
+                local_variable_offset,
+                local_variable_count,
+                _unknown9,
+                _unknown10,
+                _unknown11,
+                _unknown12,
+                _unknown13,
+                _unknown14,
+                _unknown15,
+                _unknown16,
+            )| Script {
+                pid,
+                next_script,
+                trigger_type,
+                radius,
+                flags,
+                id,
+                _unknown5,
+                object_id,
+                local_variable_offset,
+                local_variable_count,
+                _unknown9,
+                _unknown10,
+                _unknown11,
+                _unknown13,
+                _unknown14,
+                _unknown15,
+                _unknown16,
+            },
+        )
+    })(input);
+
+    (header, map_variables.unwrap().1, vec![scripts.unwrap().1])
 }
 
 pub fn try_decompress_dat2(input: Vec<u8>) -> Vec<u8> {
@@ -294,23 +420,30 @@ mod tests {
     }
 
     #[test]
-    fn parses_dat2_files() {
+    fn parses_map_save() {
         let decompressed = try_decompress_dat2(NCR1_SAVE.to_vec());
-        let (dat2_file, map_variables) = dat2(&decompressed);
+        let (map_save, map_variables, scripts) = dat2(&decompressed);
 
-        assert_eq!(dat2_file.version, MapVersion::Fallout2 as u32);
-        assert_eq!(dat2_file.filename, "NCR1.SAV\0MAP\0\0\0".to_string());
-        assert_eq!(dat2_file.default_player_position, 13915);
-        assert_eq!(dat2_file.default_player_elevation, 0);
-        assert_eq!(dat2_file.default_player_orientation, 0);
-        assert_eq!(dat2_file.local_variable_count, 739);
-        assert_eq!(dat2_file.flags, 223);
-        assert_eq!(dat2_file.darkness, 13);
-        assert_eq!(dat2_file.global_variable_count, 1);
-        assert_eq!(dat2_file.id, 4);
-        assert_eq!(dat2_file.ticks, 42);
+        assert_eq!(map_save.version, MapVersion::Fallout2 as u32);
+        assert_eq!(map_save.filename, "NCR1.SAV\0MAP\0\0\0".to_string());
+        assert_eq!(map_save.default_player_position, 13915);
+        assert_eq!(map_save.default_player_elevation, 0);
+        assert_eq!(map_save.default_player_orientation, 0);
+        assert_eq!(map_save.local_variable_count, 739);
+        assert!(map_save.flags.intersects(
+            MapFlags::IsMapSave
+                | MapFlags::HasElevationAtLevel0
+                | MapFlags::HasElevationAtLevel1
+                | MapFlags::HasElevationAtLevel2
+        ));
+        assert_eq!(map_save.darkness, 13);
+        assert_eq!(map_save.global_variable_count, 1);
+        assert_eq!(map_save.id, 4);
+        assert_eq!(map_save.ticks, 42);
 
         assert_eq!(map_variables.global_variables.len(), 1);
         assert_eq!(map_variables.local_variables.len(), 739);
+
+        dbg!(scripts);
     }
 }
