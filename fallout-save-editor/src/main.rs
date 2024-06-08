@@ -481,7 +481,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_map_save() {
+    fn parses_ncr_downtown_map_save() {
         let decompressed = try_decompress_dat2(NCR1_SAVE.to_vec());
         let (map_save, map_variables, scripts) = dat2(&decompressed);
 
