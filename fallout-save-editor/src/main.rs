@@ -2,11 +2,12 @@ use flate2::read::GzDecoder;
 // Documentation here is based on and copied from:
 // https://falloutmods.fandom.com/wiki/SAVE.DAT_File_Format
 //
-//
+// TODO(tatu): implement wrapper type that understands binary offsets/spans per field. TODO(tatu):
+// implement wrapper type that preserves original binary and provides better view
 use nom::{
     bytes::streaming::{take, take_until},
     combinator::{flat_map, map},
-    error::{Error, ErrorKind},
+    error::ErrorKind,
     multi::count,
     number::streaming::{be_i32, be_u16, be_u32, be_u8},
     sequence::tuple,
@@ -146,6 +147,8 @@ pub fn header(input: &[u8]) -> IResult<&[u8], SaveHeader> {
     )(input)
 }
 
+// Note that the binary format of Fallout 2 map flags uses zero flags. These are problematic for
+// bitflags crate and thus we invert all but the last bit, which confusingly is not a zero flag.
 bitflags! {
     #[derive(Clone, Debug, PartialEq)]
     pub struct MapFlags: i32 {
@@ -167,6 +170,7 @@ pub struct MapHeader {
     pub default_player_elevation: i32,
     pub default_player_orientation: i32,
     pub local_variable_count: i32,
+    pub script_id: i32,
     pub flags: MapFlags,
     pub darkness: i32,
     pub global_variable_count: i32,
@@ -236,6 +240,19 @@ fn tile_size_in_bytes(map_flags: &MapFlags) -> u32 {
     bytes
 }
 
+fn map_flags(input: &[u8]) -> IResult<&[u8], MapFlags> {
+    map(be_u32, |raw_flags| {
+        // Having 0 flags is troublesome for bitflags. This is probably overthinking. We need to
+        // flip all the other bits but LSB. This breaks binary compatibility.
+        MapFlags::from_bits(
+            (raw_flags ^ 0xE)
+                .try_into()
+                .expect("flags should not overflow"),
+        )
+        .expect("should have parsed map flags")
+    })(input)
+}
+
 pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     let header = map(
         tuple((
@@ -246,6 +263,7 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
             be_i32,
             be_i32,
             be_i32,
+            map_flags,
             be_i32,
             be_i32,
             be_i32,
@@ -259,25 +277,31 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
             default_player_elevation,
             default_player_orientation,
             local_variable_count,
+            script_id,
             flags,
             darkness,
             global_variable_count,
             id,
             ticks,
             mystery_bytes,
-        )| MapHeader {
-            version,
-            filename,
-            default_player_position,
-            default_player_elevation,
-            default_player_orientation,
-            flags: MapFlags::from_bits(flags).expect("should have parsed map flags"),
-            darkness,
-            global_variable_count,
-            id,
-            ticks,
-            local_variable_count,
-            mystery_bytes: mystery_bytes.to_vec(),
+        )| {
+            dbg!(&flags);
+            println!("flags: {:#032b}", &flags);
+            MapHeader {
+                version,
+                filename,
+                default_player_position,
+                default_player_elevation,
+                default_player_orientation,
+                local_variable_count,
+                script_id,
+                flags,
+                darkness,
+                global_variable_count,
+                id,
+                ticks,
+                mystery_bytes: mystery_bytes.to_vec(),
+            }
         },
     )(input);
 
@@ -428,25 +452,32 @@ mod tests {
         let decompressed = try_decompress_dat2(NCR1_SAVE.to_vec());
         let (map_save, map_variables, scripts) = dat2(&decompressed);
 
+        dbg!(&map_save.flags);
+
         assert_eq!(map_save.version, MapVersion::Fallout2 as u32);
         assert_eq!(map_save.filename, "NCR1.SAV".to_string());
         assert_eq!(map_save.default_player_position, 13915);
         assert_eq!(map_save.default_player_elevation, 0);
         assert_eq!(map_save.default_player_orientation, 0);
         assert_eq!(map_save.local_variable_count, 739);
-        assert!(map_save.flags.intersects(
-            MapFlags::IsMapSave
-                | MapFlags::HasElevationAtLevel0
-                | MapFlags::HasElevationAtLevel1
-                | MapFlags::HasElevationAtLevel2
-        ));
-        assert_eq!(map_save.darkness, 13);
-        assert_eq!(map_save.global_variable_count, 1);
-        assert_eq!(map_save.id, 4);
-        assert_eq!(map_save.ticks, 42);
+
+        // NCR should only have zero elevation and this is a map save
+        assert!(
+            map_save
+                .flags
+                .contains(MapFlags::HasElevationAtLevel1 | MapFlags::HasElevationAtLevel2)
+                == false
+        );
+        assert!(map_save
+            .flags
+            .contains(MapFlags::IsMapSave | MapFlags::HasElevationAtLevel0));
+        assert_eq!(map_save.darkness, 1);
+        assert_eq!(map_save.global_variable_count, 4);
+        assert_eq!(map_save.id, 42);
+        assert_eq!(map_save.ticks, 279545083);
         assert_eq!(map_save.mystery_bytes.len(), 4 * 44);
 
-        assert_eq!(map_variables.global_variables.len(), 1);
+        assert_eq!(map_variables.global_variables.len(), 4);
         assert_eq!(map_variables.local_variables.len(), 739);
 
         dbg!(scripts);
