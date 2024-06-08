@@ -212,22 +212,26 @@ pub struct Script {
     pub _unknown16: i32,
 }
 
-fn tile_size(map_flags: &MapFlags) -> u32 {
-    let mut tiles = 0;
+// maps are laid out on 100x100 grid for both the floor and the roof. Each tile is 2 bytes. Floor
+// and roof tiles alternate in the sequence.
+fn tile_size_in_bytes(map_flags: &MapFlags) -> u32 {
+    let mut bytes = 0;
+
+    const ELEVATION_TILE_SIZE_BYTES: u32 = 100 * 100 * 2 * 2;
 
     if map_flags.contains(MapFlags::HasElevationAtLevel0) {
-        tiles += 40000;
+        bytes += ELEVATION_TILE_SIZE_BYTES;
     }
 
     if map_flags.contains(MapFlags::HasElevationAtLevel1) {
-        tiles += 40000;
+        bytes += ELEVATION_TILE_SIZE_BYTES;
     }
 
     if map_flags.contains(MapFlags::HasElevationAtLevel2) {
-        tiles += 40000;
+        bytes += ELEVATION_TILE_SIZE_BYTES;
     }
 
-    tiles
+    bytes
 }
 
 pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
@@ -293,7 +297,8 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     // Consume tiles
     // FIXME: Actually parse the tiles rather than discarding them
     // FIXME: I think this might be fucked/wrong
-    let (input, _) = take::<_, _, (_, ErrorKind)>(tile_size(&header.flags))(input).unwrap();
+    let (input, _) =
+        take::<_, _, (_, ErrorKind)>(tile_size_in_bytes(&header.flags))(input).unwrap();
 
     let scripts = flat_map(be_u32, |script_count| {
         // FIXME: make a parser for script counts rather than asserting here and return a parse
@@ -302,6 +307,8 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
             script_count <= SCRIPTS_IN_GROUP,
             "script sections should not have more than 16 scripts"
         );
+
+        println!("found {script_count} scripts");
 
         map(
             tuple::<_, _, (_, ErrorKind), _>((
