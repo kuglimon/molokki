@@ -4,7 +4,7 @@ use flate2::read::GzDecoder;
 //
 //
 use nom::{
-    bytes::streaming::take,
+    bytes::streaming::{take, take_until},
     combinator::{flat_map, map},
     error::{Error, ErrorKind},
     multi::count,
@@ -55,28 +55,27 @@ pub struct DatFile {
 
 // ASCII (C-style) strings end with a 0 byte - the hex value 0x0, not the character '0'. So, if the
 // length of an ASCII string is 32, it can contain 31 characters with 0x0 at the end.
-pub fn ascii_string(input: &[u8]) -> IResult<&[u8], String> {
-    map(tuple((take(31u32), take(1u32))), |(name, _)| {
-        str::from_utf8(name)
-            .expect("expected a valid fallout ascii string")
-            .to_string()
-    })(input)
+//
+// Parser will try to consume the requested size and the resulting string will only contain data up
+// to the first null terminator.
+pub fn ascii_string(size: usize) -> impl Fn(&[u8]) -> IResult<&[u8], String> {
+    move |input| {
+        flat_map(take_until("\0"), |string_bytes: &[u8]| {
+            map(take(size - string_bytes.len()), |_| {
+                str::from_utf8(string_bytes)
+                    .expect("expected a valid fallout ascii string")
+                    .to_string()
+            })
+        })(input)
+    }
 }
 
 pub fn save_name(input: &[u8]) -> IResult<&[u8], String> {
-    map(tuple((take(29u32), take(1u32))), |(name, _)| {
-        str::from_utf8(name)
-            .expect("expected a valid fallout ascii string")
-            .to_string()
-    })(input)
+    ascii_string(30)(input)
 }
 
 pub fn map_name(input: &[u8]) -> IResult<&[u8], String> {
-    map(tuple((take(15u32), take(1u32))), |(name, _)| {
-        str::from_utf8(name)
-            .expect("expected a valid fallout ascii string")
-            .to_string()
-    })(input)
+    ascii_string(16)(input)
 }
 
 // On Steam Windows there's some extra 6 bytes of crap after the 18 byte header.
@@ -87,7 +86,7 @@ pub fn header(input: &[u8]) -> IResult<&[u8], SaveHeader> {
             take(6u32),
             be_u32,
             be_u8,
-            ascii_string,
+            ascii_string(32),
             save_name,
             be_u16,
             be_u16,
@@ -395,14 +394,8 @@ mod tests {
         assert_eq!(save_header.magic, "FALLOUT SAVE FILE\0".to_string());
         assert_eq!(save_header.version, 65538);
         assert_eq!(save_header.release_type, 82);
-        assert_eq!(
-            save_header.name,
-            "diglet\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_string()
-        );
-        assert_eq!(
-            save_header.save_name,
-            "start\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_string()
-        );
+        assert_eq!(save_header.name, "diglet".to_string());
+        assert_eq!(save_header.save_name, "start".to_string());
         assert_eq!(save_header.save_day, 2);
         assert_eq!(save_header.save_month, 6);
         assert_eq!(save_header.save_year, 2024);
@@ -412,7 +405,7 @@ mod tests {
         assert_eq!(save_header.ingame_day, 13);
         assert_eq!(save_header.ingame_ticks, 279545357);
         assert_eq!(save_header.current_map, 46);
-        assert_eq!(save_header.map_name, "NCRENT.sav\0\0\0\0\0".to_string());
+        assert_eq!(save_header.map_name, "NCRENT.sav".to_string());
     }
 
     #[test]
@@ -432,7 +425,7 @@ mod tests {
         let (map_save, map_variables, scripts) = dat2(&decompressed);
 
         assert_eq!(map_save.version, MapVersion::Fallout2 as u32);
-        assert_eq!(map_save.filename, "NCR1.SAV\0MAP\0\0\0".to_string());
+        assert_eq!(map_save.filename, "NCR1.SAV".to_string());
         assert_eq!(map_save.default_player_position, 13915);
         assert_eq!(map_save.default_player_elevation, 0);
         assert_eq!(map_save.default_player_orientation, 0);
