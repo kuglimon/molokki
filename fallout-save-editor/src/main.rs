@@ -172,6 +172,9 @@ pub struct MapHeader {
     pub global_variable_count: i32,
     pub id: i32,
     pub ticks: u32,
+
+    // Haven't found documentation for these bytes
+    pub mystery_bytes: Vec<u8>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -261,7 +264,7 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
             global_variable_count,
             id,
             ticks,
-            _,
+            mystery_bytes,
         )| MapHeader {
             version,
             filename,
@@ -274,6 +277,7 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
             id,
             ticks,
             local_variable_count,
+            mystery_bytes: mystery_bytes.to_vec(),
         },
     )(input);
 
@@ -440,6 +444,7 @@ mod tests {
         assert_eq!(map_save.global_variable_count, 1);
         assert_eq!(map_save.id, 4);
         assert_eq!(map_save.ticks, 42);
+        assert_eq!(map_save.mystery_bytes.len(), 4 * 44);
 
         assert_eq!(map_variables.global_variables.len(), 1);
         assert_eq!(map_variables.local_variables.len(), 739);
