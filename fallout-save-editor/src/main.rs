@@ -2,6 +2,10 @@ use flate2::read::GzDecoder;
 // Documentation here is based on and copied from:
 // https://falloutmods.fandom.com/wiki/SAVE.DAT_File_Format
 //
+// Most of the functionality relies on the F12SE implementation for reference. It seems like F12SE
+// matches fairly well what falloutmods has documented. Personally I think the offset based parsing
+// is fairly confusing to follow.
+//
 // TODO(tatu): implement wrapper type that understands binary offsets/spans per field.
 // TODO(tatu): implement wrapper type that preserves original binary and provides better view
 use nom::{
@@ -16,6 +20,7 @@ use nom::{
 
 use bitflags::bitflags;
 
+use core::fmt;
 use std::io::Read;
 use std::str;
 
@@ -192,16 +197,8 @@ pub struct MapVariables {
 // jump around from the sources to the internet to check why we're skipping some offsets.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Script {
-    pub pid: u32,
-
-    // Not used, I guess it should be -1 always according to some documentation.
-    pub next_script: i32,
-    pub trigger_type: i32,
-    pub radius: i32,
-    pub flags: i32,
+    pub _prefix_junk: Vec<u8>,
     pub id: i32,
-    pub _unknown5: i32,
-    pub object_id: i32,
 
     // Should be -1 in map files and set to some value in saves
     pub local_variable_offset: i32,
@@ -209,13 +206,24 @@ pub struct Script {
     // Should be 0 in map files and set to some value in saves
     pub local_variable_count: i32,
 
-    pub _unknown9: i32,
-    pub _unknown10: i32,
-    pub _unknown11: i32,
-    pub _unknown13: i32,
-    pub _unknown14: i32,
-    pub _unknown15: i32,
-    pub _unknown16: i32,
+    pub script_type: ScriptTagType,
+    // pub pid: u32,
+    //
+    // // Not used, I guess it should be -1 always according to some documentation.
+    // pub next_script: i32,
+    // pub trigger_type: i32,
+    // pub radius: i32,
+    // pub flags: i32,
+    // pub _unknown5: i32,
+    // pub object_id: i32,
+    //
+    // pub _unknown9: i32,
+    // pub _unknown10: i32,
+    // pub _unknown11: i32,
+    // pub _unknown13: i32,
+    // pub _unknown14: i32,
+    // pub _unknown15: i32,
+    // pub _unknown16: i32,
 }
 
 // maps are laid out on 100x100 grid for both the floor and the roof. Each tile is 2 bytes. Floor
@@ -356,9 +364,7 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
 }
 
 pub fn script_group(input: &[u8]) -> IResult<&[u8], Vec<Script>> {
-    // The random 4 byte read is something F12SE does before reading script counts. Maybe it's just
-    // some sentinel or guard?
-    flat_map(tuple((be_i32, be_i32)), |(_mystery_byte, script_count)| {
+    flat_map(be_i32, |script_count| {
         println!("trying to parse {script_count} scripts");
         // FIXME: make a parser for script counts rather than asserting here and return a parse
         // error, rather than panic
@@ -368,55 +374,134 @@ pub fn script_group(input: &[u8]) -> IResult<&[u8], Vec<Script>> {
         // );
         println!("found {script_count} scripts");
 
-        count(script, script_count.try_into().unwrap())
+        // FIXME(tatu): this man loves unwraps
+        let script_count: usize = script_count.try_into().unwrap();
+
+        count(script, script_count)
+    })(input)
+}
+
+// Defines the type of script. 0x00 and 0x02 types are rare or unused according to F12SE sources.
+// TODO: breaks binary compatibility
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ScriptTagType {
+    // 0x00 - s_system
+    System = 0x00,
+
+    // 0x01 spatial s_spatial
+    Spatial = 0x01,
+
+    // 0x02 items s_time
+    Items = 0x02,
+
+    // 0x03 scenery s_item
+    Scenery = 0x03,
+
+    // 0x04 critters s_critter
+    Critters = 0x04,
+}
+
+impl TryFrom<u32> for ScriptTagType {
+    type Error = ();
+
+    fn try_from(v: u32) -> Result<Self, Self::Error> {
+        println!("Trying to construct type from tag {:#032b}", v);
+        match v {
+            x if x == ScriptTagType::System as u32 => Ok(ScriptTagType::System),
+            x if x == ScriptTagType::Spatial as u32 => Ok(ScriptTagType::Spatial),
+            x if x == ScriptTagType::Items as u32 => Ok(ScriptTagType::Items),
+            x if x == ScriptTagType::Scenery as u32 => Ok(ScriptTagType::Scenery),
+            x if x == ScriptTagType::Critters as u32 => Ok(ScriptTagType::Critters),
+            _ => Err(()),
+        }
+    }
+}
+
+impl ScriptTagType {
+    pub fn byte_offset(&self) -> Result<u32, UnknownScriptSizeType> {
+        use ScriptTagType::*;
+
+        match self {
+            Spatial => Ok(72),
+            Items => Ok(68),
+            Scenery | Critters => Ok(64),
+            _ => Err(UnknownScriptSizeType {
+                script_type: self.clone(),
+            }),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UnknownScriptSizeType {
+    script_type: ScriptTagType,
+}
+
+impl fmt::Display for UnknownScriptSizeType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "size is not known for scripts of type {:?}",
+            self.script_type
+        )
+    }
+}
+
+pub fn script_type_tag(input: &[u8]) -> IResult<&[u8], ScriptTagType> {
+    map(be_u32, |script_tag_raw| {
+        // FIXME(tatu): Don't unwrap, map the error to nom error
+        // FIXME(tatu): Find out what type this is, seems like a PID
+        //
+        // This type is not really defined well anywhere. It seems like PID but PID values are
+        // different.
+        println!("Trying to construct type from tag {:#032b}", script_tag_raw);
+        println!(
+            "Trying to construct type from shifted tag {:#032b}",
+            script_tag_raw >> 24
+        );
+
+        ScriptTagType::try_from(script_tag_raw >> 24).unwrap()
     })(input)
 }
 
 pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
-    map(
-        tuple((
-            be_u32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32,
-            be_i32, be_i32, be_i32, be_i32, be_i32, be_i32, be_i32,
-        )),
-        |(
-            pid,
-            next_script,
-            trigger_type,
-            radius,
-            flags,
-            id,
-            _unknown5,
-            object_id,
-            local_variable_offset,
-            local_variable_count,
-            _unknown9,
-            _unknown10,
-            _unknown11,
-            _unknown12,
-            _unknown13,
-            _unknown14,
-            _unknown15,
-            _unknown16,
-        )| Script {
-            pid,
-            next_script,
-            trigger_type,
-            radius,
-            flags,
-            id,
-            _unknown5,
-            object_id,
-            local_variable_offset,
-            local_variable_count,
-            _unknown9,
-            _unknown10,
-            _unknown11,
-            _unknown13,
-            _unknown14,
-            _unknown15,
-            _unknown16,
-        },
-    )(input)
+    flat_map(script_type_tag, |script_type_tag| {
+        map(
+            tuple((
+                // FIXME(tatu): These are incorrect! I keep forgetting F12SE parses by offsets and
+                // never really advances anything, this parsing starts from the script type tag
+                // parsing, take that offset into account.
+                // Another mystery byte skip from F12SE
+                take(script_type_tag.byte_offset().unwrap() - 0x30),
+                be_i32,
+                take(8u32),
+                be_i32,
+                // Another mystery byte skip from F12SE
+                be_i32,
+                // Consume rest of the buffer
+                // take(script_type_tag.byte_offset().unwrap() - 20u32),
+            )),
+            move |(_prefix_junk, id, _, local_variable_count, local_variable_offset): (
+                &[u8],
+                i32,
+                _,
+                i32,
+                i32,
+            )|
+                  -> Script {
+                let script = Script {
+                    _prefix_junk: _prefix_junk.to_vec(),
+                    id,
+                    local_variable_count,
+                    script_type: script_type_tag,
+                    local_variable_offset,
+                };
+
+                println!("found script {:?}", &script);
+                script
+            },
+        )
+    })(input)
 }
 
 pub fn try_decompress_dat2(input: Vec<u8>) -> Vec<u8> {
