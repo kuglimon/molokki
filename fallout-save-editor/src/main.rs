@@ -284,6 +284,7 @@ pub fn map_variable_values(
 
 pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     let start = input.len();
+    println!("starting from {start}");
     let header = map(
         tuple((
             be_u32,
@@ -409,24 +410,28 @@ pub fn script_group(input: &[u8]) -> IResult<&[u8], Vec<Script>> {
         input = remaining_input;
     }
 
-    let (input, mut new_scripts) = map(
-        tuple((
-            count(script, script_count),
-            take(8u32), // script check counter and possible crc check
-        )),
-        |(scripts, _)| scripts,
-    )(input)?;
+    let (input, mut new_scripts) = map(count(script, script_count), |scripts| scripts)(input)?;
     scripts.append(&mut new_scripts);
 
     println!("{script_count} scripts left after parsing");
 
-    if script_count > 0 {
+    let input = if script_count > 0 {
         let remaining_block = SCRIPTS_IN_GROUP - script_count;
 
         println!("{remaining_block} junk left");
 
-        count(read_script_block_junk, remaining_block)(input)?;
-    }
+        let (input, _) = tuple((
+            count(read_script_block_junk, remaining_block),
+            take(8u32), // script check counter and possible crc check
+        ))(input)?;
+        input
+    } else {
+        input
+    };
+
+    let curr = input.len();
+
+    println!("at offset {curr}");
 
     Ok((input, scripts))
 }
@@ -436,7 +441,9 @@ pub fn read_script_block_junk(input: &[u8]) -> IResult<&[u8], &[u8]> {
         let junk_size = script_type_tag.junk_size();
         println!("reading rec {:?}", script_type_tag);
         println!("reading junk {junk_size}");
-        take(script_type_tag.junk_size())
+        // FIXME(tatu): record sizes include the size and we've consumed it already, so substract 4
+        // bytes. This is confusing as fuck. Make something better once everything works.
+        take(script_type_tag.junk_size() - 4)
     })(input)
 }
 
@@ -524,6 +531,7 @@ pub fn script_type_tag(input: &[u8]) -> IResult<&[u8], ScriptTagType> {
         //
         // This type is not really defined well anywhere. It seems like PID but PID values are
         // different.
+        println!("got {}", (script_tag_raw as i32) >> 24);
         ScriptTagType::try_from(script_tag_raw >> 24).unwrap()
     })(input)
 }
