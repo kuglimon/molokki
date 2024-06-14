@@ -21,11 +21,11 @@ use nom::{
 use bitflags::bitflags;
 
 use core::fmt;
-use std::io::Read;
 use std::str;
+use std::{borrow::Cow, io::Read};
 
 const SCRIPT_GROUP_COUNT: usize = 5;
-const SCRIPTS_IN_GROUP: i32 = 16;
+const SCRIPTS_IN_GROUP: usize = 16;
 
 enum MapVersion {
     Fallout1 = 19,
@@ -283,6 +283,7 @@ pub fn map_variable_values(
 }
 
 pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
+    let start = input.len();
     let header = map(
         tuple((
             be_u32,
@@ -343,10 +344,23 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     let map_variables = map_variable_values(global_variable_count, local_variable_count)(input);
     let (input, map_variables) = map_variables.expect("should have parsed map variable values");
 
+    println!("at variable offset {}", start - input.len());
+
     // Consume tiles
     // FIXME: Actually parse the tiles rather than discarding them
     let (input, _) =
         take::<_, _, (_, ErrorKind)>(tile_size_in_bytes(&header.flags))(input).unwrap();
+
+    println!("at offset tiles {}", start - input.len());
+    println!("next shit {:?}", &input[..16]);
+    println!(
+        "last gvariable {:?}",
+        map_variables.global_variables[map_variables.global_variables.len() - 1]
+    );
+    println!(
+        "last lvariable {:?}",
+        map_variables.local_variables[map_variables.local_variables.len() - 1]
+    );
 
     let scripts = fold_many_m_n(
         SCRIPT_GROUP_COUNT,
@@ -355,7 +369,8 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
         || Vec::new(),
         |acc, scripts| {
             let size = scripts.len();
-            println!("got {size} new scripts");
+            let had = acc.len();
+            println!("got {size} new scripts had {had}");
             [acc, scripts].concat()
         },
     )(input);
@@ -364,20 +379,64 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
 }
 
 pub fn script_group(input: &[u8]) -> IResult<&[u8], Vec<Script>> {
-    flat_map(be_i32, |script_count| {
-        println!("trying to parse {script_count} scripts");
-        // FIXME: make a parser for script counts rather than asserting here and return a parse
-        // error, rather than panic
-        // assert!(
-        //     script_count <= SCRIPTS_IN_GROUP,
-        //     "script sections should not have more than {SCRIPTS_IN_GROUP} scripts"
-        // );
-        println!("found {script_count} scripts");
+    let (mut input, script_count) = be_i32(input)?;
 
-        // FIXME(tatu): this man loves unwraps
-        let script_count: usize = script_count.try_into().unwrap();
+    println!("trying to parse {script_count} scripts");
+    // FIXME: make a parser for script counts rather than asserting here and return a parse
+    // error, rather than panic
+    // assert!(
+    //     script_count <= SCRIPTS_IN_GROUP,
+    //     "script sections should not have more than {SCRIPTS_IN_GROUP} scripts"
+    // );
+    println!("found {script_count} scripts");
 
-        count(script, script_count)
+    // FIXME(tatu): this man loves unwraps
+    let mut script_count: usize = script_count.try_into().unwrap();
+    let mut scripts = Vec::new();
+
+    while script_count > SCRIPTS_IN_GROUP {
+        let (remaining_input, mut new_scripts) = map(
+            tuple((
+                count(script, SCRIPTS_IN_GROUP),
+                take(8u32), // script check counter and possible crc check
+            )),
+            |(scripts, _)| scripts,
+        )(input)?;
+
+        scripts.append(&mut new_scripts);
+        script_count -= SCRIPTS_IN_GROUP;
+
+        input = remaining_input;
+    }
+
+    let (input, mut new_scripts) = map(
+        tuple((
+            count(script, script_count),
+            take(8u32), // script check counter and possible crc check
+        )),
+        |(scripts, _)| scripts,
+    )(input)?;
+    scripts.append(&mut new_scripts);
+
+    println!("{script_count} scripts left after parsing");
+
+    if script_count > 0 {
+        let remaining_block = SCRIPTS_IN_GROUP - script_count;
+
+        println!("{remaining_block} junk left");
+
+        count(read_script_block_junk, remaining_block)(input)?;
+    }
+
+    Ok((input, scripts))
+}
+
+pub fn read_script_block_junk(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    flat_map(script_type_tag, |script_type_tag| {
+        let junk_size = script_type_tag.junk_size();
+        println!("reading rec {:?}", script_type_tag);
+        println!("reading junk {junk_size}");
+        take(script_type_tag.junk_size())
     })(input)
 }
 
@@ -405,7 +464,6 @@ impl TryFrom<u32> for ScriptTagType {
     type Error = ();
 
     fn try_from(v: u32) -> Result<Self, Self::Error> {
-        println!("Trying to construct type from tag {:#032b}", v);
         match v {
             x if x == ScriptTagType::System as u32 => Ok(ScriptTagType::System),
             x if x == ScriptTagType::Spatial as u32 => Ok(ScriptTagType::Spatial),
@@ -428,6 +486,18 @@ impl ScriptTagType {
             _ => Err(UnknownScriptSizeType {
                 script_type: self.clone(),
             }),
+        }
+    }
+
+    // How is it that we know the size of junk but not the actual records but the sizes are the
+    // same? This is something F12SE does, but it isn't documented, this is just called junk.
+    pub fn junk_size(&self) -> usize {
+        use ScriptTagType::*;
+
+        match self {
+            Spatial => 72,
+            Items => 68,
+            _ => 64,
         }
     }
 }
@@ -454,39 +524,42 @@ pub fn script_type_tag(input: &[u8]) -> IResult<&[u8], ScriptTagType> {
         //
         // This type is not really defined well anywhere. It seems like PID but PID values are
         // different.
-        println!("Trying to construct type from tag {:#032b}", script_tag_raw);
-        println!(
-            "Trying to construct type from shifted tag {:#032b}",
-            script_tag_raw >> 24
-        );
-
         ScriptTagType::try_from(script_tag_raw >> 24).unwrap()
     })(input)
 }
 
 pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
+    // FIXME(tatu): We should peek script tag type and then parse the whole record as its own
+    // buffer. All the offset calculations are now super confusing as we've consumed part of the
+    // record and then carry that in all calculations.
     flat_map(script_type_tag, |script_type_tag| {
+        let offset = input.len();
+        println!("at scripts offset {:?}", offset);
+        let record_size = script_type_tag.byte_offset().unwrap();
+        // TODO(tatu): Kinda bad as we need to keep this 20 bytes in sync with what we've read. I
+        // think a better option is to slice the input at record size, parse that while discarding
+        // the rest and then manually advance the input buffer.
+        let junk_size = record_size - (record_size - 0x38 + 20u32 + 4u32);
+        println!("junk size {:?}", junk_size);
         map(
             tuple((
-                // FIXME(tatu): These are incorrect! I keep forgetting F12SE parses by offsets and
-                // never really advances anything, this parsing starts from the script type tag
-                // parsing, take that offset into account.
                 // Another mystery byte skip from F12SE
-                take(script_type_tag.byte_offset().unwrap() - 0x30),
+                take(record_size - 0x38),
                 be_i32,
                 take(8u32),
                 be_i32,
                 // Another mystery byte skip from F12SE
                 be_i32,
                 // Consume rest of the buffer
-                // take(script_type_tag.byte_offset().unwrap() - 20u32),
+                take(junk_size),
             )),
-            move |(_prefix_junk, id, _, local_variable_count, local_variable_offset): (
+            move |(_prefix_junk, id, _, local_variable_count, local_variable_offset, _): (
                 &[u8],
                 i32,
                 _,
                 i32,
                 i32,
+                _,
             )|
                   -> Script {
                 let script = Script {
@@ -497,7 +570,7 @@ pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
                     local_variable_offset,
                 };
 
-                println!("found script {:?}", &script);
+                // println!("found script {:?}", &script);
                 script
             },
         )
