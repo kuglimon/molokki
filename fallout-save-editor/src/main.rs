@@ -410,10 +410,10 @@ pub fn script_group(input: &[u8]) -> IResult<&[u8], Vec<Script>> {
         input = remaining_input;
     }
 
+    println!("{script_count} scripts left after parsing");
+
     let (input, mut new_scripts) = map(count(script, script_count), |scripts| scripts)(input)?;
     scripts.append(&mut new_scripts);
-
-    println!("{script_count} scripts left after parsing");
 
     let input = if script_count > 0 {
         let remaining_block = SCRIPTS_IN_GROUP - script_count;
@@ -439,7 +439,7 @@ pub fn script_group(input: &[u8]) -> IResult<&[u8], Vec<Script>> {
 pub fn read_script_block_junk(input: &[u8]) -> IResult<&[u8], &[u8]> {
     flat_map(script_type_tag, |script_type_tag| {
         let junk_size = script_type_tag.junk_size();
-        println!("reading rec {:?}", script_type_tag);
+        println!("reading junk rec {:?}", script_type_tag);
         println!("reading junk {junk_size}");
         // FIXME(tatu): record sizes include the size and we've consumed it already, so substract 4
         // bytes. This is confusing as fuck. Make something better once everything works.
@@ -465,6 +465,9 @@ pub enum ScriptTagType {
 
     // 0x04 critters s_critter
     Critters = 0x04,
+
+    // FIXME(tatu): just a catch all to fallback to, value might colide with actual types
+    Unknown = 0xff,
 }
 
 impl TryFrom<u32> for ScriptTagType {
@@ -477,7 +480,7 @@ impl TryFrom<u32> for ScriptTagType {
             x if x == ScriptTagType::Items as u32 => Ok(ScriptTagType::Items),
             x if x == ScriptTagType::Scenery as u32 => Ok(ScriptTagType::Scenery),
             x if x == ScriptTagType::Critters as u32 => Ok(ScriptTagType::Critters),
-            _ => Err(()),
+            _ => Ok(ScriptTagType::Unknown),
         }
     }
 }
@@ -548,7 +551,7 @@ pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
         // think a better option is to slice the input at record size, parse that while discarding
         // the rest and then manually advance the input buffer.
         let junk_size = record_size - (record_size - 0x38 + 20u32 + 4u32);
-        println!("junk size {:?}", junk_size);
+        println!("script suffix junk size {:?}", junk_size);
         map(
             tuple((
                 // Another mystery byte skip from F12SE
@@ -610,7 +613,51 @@ mod tests {
 
     // Early/midgame save with NCR npcs on aggro
     const SLOT01_SAVE: &[u8] = include_bytes!("../saves/SLOT01/SAVE.DAT");
+
+    const ARBRIDGE_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARBRIDGE.SAV");
+    const ARCAVES_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARCAVES.SAV");
+    const ARGARDEN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARGARDEN.SAV");
+    const ARTEMPLE_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARTEMPLE.SAV");
+    const ARVILLAG_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARVILLAG.SAV");
+    const AUTOMAP_SAVE: &[u8] = include_bytes!("../saves/SLOT01/AUTOMAP.SAV");
+    const BROKEN1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/BROKEN1.SAV");
+    const BROKEN2_SAVE: &[u8] = include_bytes!("../saves/SLOT01/BROKEN2.SAV");
+    const DENBUS1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/DENBUS1.SAV");
+    const DENBUS2_SAVE: &[u8] = include_bytes!("../saves/SLOT01/DENBUS2.SAV");
+    const GECKJUNK_SAVE: &[u8] = include_bytes!("../saves/SLOT01/GECKJUNK.SAV");
+    const GECKPWPL_SAVE: &[u8] = include_bytes!("../saves/SLOT01/GECKPWPL.SAV");
+    const GECKSETL_SAVE: &[u8] = include_bytes!("../saves/SLOT01/GECKSETL.SAV");
+    const GECKTUNL_SAVE: &[u8] = include_bytes!("../saves/SLOT01/GECKTUNL.SAV");
+    const GSTCAV1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/GSTCAV1.SAV");
+    const GSTCAV2_SAVE: &[u8] = include_bytes!("../saves/SLOT01/GSTCAV2.SAV");
+    const GSTFARM_SAVE: &[u8] = include_bytes!("../saves/SLOT01/GSTFARM.SAV");
+    const KLACANYN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/KLACANYN.SAV");
+    const KLADWTWN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/KLADWTWN.SAV");
+    const KLAGRAZ_SAVE: &[u8] = include_bytes!("../saves/SLOT01/KLAGRAZ.SAV");
+    const KLATOXCV_SAVE: &[u8] = include_bytes!("../saves/SLOT01/KLATOXCV.SAV");
+    const KLATRAP_SAVE: &[u8] = include_bytes!("../saves/SLOT01/KLATRAP.SAV");
+    const MODGARD_SAVE: &[u8] = include_bytes!("../saves/SLOT01/MODGARD.SAV");
+    const MODINN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/MODINN.SAV");
+    const MODMAIN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/MODMAIN.SAV");
+    const MODSHIT_SAVE: &[u8] = include_bytes!("../saves/SLOT01/MODSHIT.SAV");
     const NCR1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NCR1.SAV");
+    const NCRENT_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NCRENT.SAV");
+    const NEWR1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NEWR1.SAV");
+    const NEWR2_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NEWR2.SAV");
+    const NEWR3_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NEWR3.SAV");
+    const NEWRST_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NEWRST.SAV");
+    const RAIDERS1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/RAIDERS1.SAV");
+    const RAIDERS2_SAVE: &[u8] = include_bytes!("../saves/SLOT01/RAIDERS2.SAV");
+    const REDDOWN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/REDDOWN.SAV");
+    const REDMENT_SAVE: &[u8] = include_bytes!("../saves/SLOT01/REDMENT.SAV");
+    const REDMTUN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/REDMTUN.SAV");
+    const REDWAME_SAVE: &[u8] = include_bytes!("../saves/SLOT01/REDWAME.SAV");
+    const V15ENT_SAVE: &[u8] = include_bytes!("../saves/SLOT01/V15ENT.SAV");
+    const V15SENT_SAVE: &[u8] = include_bytes!("../saves/SLOT01/V15SENT.SAV");
+    const VCTYCOCL_SAVE: &[u8] = include_bytes!("../saves/SLOT01/VCTYCOCL.SAV");
+    const VCTYCTYD_SAVE: &[u8] = include_bytes!("../saves/SLOT01/VCTYCTYD.SAV");
+    const VCTYDWTN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/VCTYDWTN.SAV");
+    const VCTYVLT_SAVE: &[u8] = include_bytes!("../saves/SLOT01/VCTYVLT.SAV");
 
     #[test]
     fn headers() {
@@ -683,6 +730,49 @@ mod tests {
             map_save.local_variable_count.try_into().unwrap()
         );
 
-        dbg!(scripts);
+        assert_eq!(scripts.len(), 85);
     }
+
+    #[test]
+    fn parses_arroyo_bridge_map_save() {
+        let decompressed = try_decompress_dat2(ARBRIDGE_SAVE.to_vec());
+        let (_, _, scripts) = dat2(&decompressed);
+
+        assert_eq!(scripts.len(), 3);
+    }
+
+    #[test]
+    fn parses_raiders_map_1_map_save() {
+        let decompressed = try_decompress_dat2(RAIDERS1_SAVE.to_vec());
+        let (_, _, scripts) = dat2(&decompressed);
+
+        assert_eq!(scripts.len(), 0);
+    }
+
+    #[test]
+    fn parses_arroy_caves_map_save() {
+        let decompressed = try_decompress_dat2(ARCAVES_SAVE.to_vec());
+        let (_, _, scripts) = dat2(&decompressed);
+
+        assert_eq!(scripts.len(), 26);
+    }
+
+    #[test]
+    fn parses_arroy_village_map_save() {
+        let decompressed = try_decompress_dat2(ARGARDEN_SAVE.to_vec());
+        let (_, _, scripts) = dat2(&decompressed);
+
+        assert_eq!(scripts.len(), 10);
+    }
+
+    // fails lol
+    // According to https://fallout.fandom.com/wiki/ARTEMPLE.SSL this is arroy caves but so is
+    // ARCAVES.SAV... Maybe this is the temple?
+    // #[test]
+    // fn parses_arroy_temple_map_save() {
+    //     let decompressed = try_decompress_dat2(ARTEMPLE_SAVE.to_vec());
+    //     let (_, _, scripts) = dat2(&decompressed);
+    //
+    //     assert_eq!(scripts.len(), 3);
+    // }
 }
