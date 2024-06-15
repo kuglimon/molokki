@@ -352,17 +352,6 @@ pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     let (input, _) =
         take::<_, _, (_, ErrorKind)>(tile_size_in_bytes(&header.flags))(input).unwrap();
 
-    println!("at offset tiles {}", start - input.len());
-    println!("next shit {:?}", &input[..16]);
-    println!(
-        "last gvariable {:?}",
-        map_variables.global_variables[map_variables.global_variables.len() - 1]
-    );
-    println!(
-        "last lvariable {:?}",
-        map_variables.local_variables[map_variables.local_variables.len() - 1]
-    );
-
     let scripts = fold_many_m_n(
         SCRIPT_GROUP_COUNT,
         SCRIPT_GROUP_COUNT,
@@ -613,13 +602,13 @@ mod tests {
 
     // Early/midgame save with NCR npcs on aggro
     const SLOT01_SAVE: &[u8] = include_bytes!("../saves/SLOT01/SAVE.DAT");
+    const AUTOMAP_SAVE: &[u8] = include_bytes!("../saves/SLOT01/AUTOMAP.SAV");
 
     const ARBRIDGE_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARBRIDGE.SAV");
     const ARCAVES_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARCAVES.SAV");
     const ARGARDEN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARGARDEN.SAV");
     const ARTEMPLE_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARTEMPLE.SAV");
     const ARVILLAG_SAVE: &[u8] = include_bytes!("../saves/SLOT01/ARVILLAG.SAV");
-    const AUTOMAP_SAVE: &[u8] = include_bytes!("../saves/SLOT01/AUTOMAP.SAV");
     const BROKEN1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/BROKEN1.SAV");
     const BROKEN2_SAVE: &[u8] = include_bytes!("../saves/SLOT01/BROKEN2.SAV");
     const DENBUS1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/DENBUS1.SAV");
@@ -639,7 +628,6 @@ mod tests {
     const MODGARD_SAVE: &[u8] = include_bytes!("../saves/SLOT01/MODGARD.SAV");
     const MODINN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/MODINN.SAV");
     const MODMAIN_SAVE: &[u8] = include_bytes!("../saves/SLOT01/MODMAIN.SAV");
-    const MODSHIT_SAVE: &[u8] = include_bytes!("../saves/SLOT01/MODSHIT.SAV");
     const NCR1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NCR1.SAV");
     const NCRENT_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NCRENT.SAV");
     const NEWR1_SAVE: &[u8] = include_bytes!("../saves/SLOT01/NEWR1.SAV");
@@ -758,21 +746,530 @@ mod tests {
     }
 
     #[test]
-    fn parses_arroy_village_map_save() {
+    fn parses_arroy_village_garden_map_save() {
         let decompressed = try_decompress_dat2(ARGARDEN_SAVE.to_vec());
         let (_, _, scripts) = dat2(&decompressed);
 
         assert_eq!(scripts.len(), 10);
     }
 
-    // fails lol
     // According to https://fallout.fandom.com/wiki/ARTEMPLE.SSL this is arroy caves but so is
-    // ARCAVES.SAV... Maybe this is the temple?
-    // #[test]
-    // fn parses_arroy_temple_map_save() {
-    //     let decompressed = try_decompress_dat2(ARTEMPLE_SAVE.to_vec());
-    //     let (_, _, scripts) = dat2(&decompressed);
-    //
-    //     assert_eq!(scripts.len(), 3);
-    // }
+    // ARCAVES.SAVE... Maybe this is the temple?
+    #[test]
+    fn parses_arroy_temple_map_save() {
+        let decompressed = try_decompress_dat2(ARTEMPLE_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 15);
+        assert_eq!(header.global_variable_count, 0);
+
+        assert_eq!(variables.local_variables.len(), 15);
+        assert_eq!(variables.global_variables.len(), 0);
+
+        assert_eq!(scripts.len(), 3);
+    }
+
+    #[test]
+    fn parses_arroy_village_map_save() {
+        let decompressed = try_decompress_dat2(ARVILLAG_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 296);
+        assert_eq!(header.global_variable_count, 5);
+
+        assert_eq!(variables.local_variables.len(), 296);
+        assert_eq!(variables.global_variables.len(), 5);
+
+        assert_eq!(scripts.len(), 141);
+    }
+
+    #[test]
+    fn parses_broken_hills_village_1_map_save() {
+        let decompressed = try_decompress_dat2(BROKEN1_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 913);
+        assert_eq!(header.global_variable_count, 31);
+
+        assert_eq!(variables.local_variables.len(), 913);
+        assert_eq!(variables.global_variables.len(), 31);
+
+        assert_eq!(scripts.len(), 98);
+    }
+
+    #[test]
+    fn parses_broken_hills_village_2_map_save() {
+        let decompressed = try_decompress_dat2(BROKEN2_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 521);
+        assert_eq!(header.global_variable_count, 25);
+
+        assert_eq!(variables.local_variables.len(), 521);
+        assert_eq!(variables.global_variables.len(), 25);
+
+        assert_eq!(scripts.len(), 120);
+    }
+
+    #[test]
+    fn parses_the_den_business_area_1_map_save() {
+        let decompressed = try_decompress_dat2(DENBUS1_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 798);
+        assert_eq!(header.global_variable_count, 10);
+
+        assert_eq!(variables.local_variables.len(), 798);
+        assert_eq!(variables.global_variables.len(), 10);
+
+        assert_eq!(scripts.len(), 95);
+    }
+
+    #[test]
+    fn parses_the_den_business_area_2_map_save() {
+        let decompressed = try_decompress_dat2(DENBUS2_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 853);
+        assert_eq!(header.global_variable_count, 13);
+
+        assert_eq!(variables.local_variables.len(), 853);
+        assert_eq!(variables.global_variables.len(), 13);
+
+        assert_eq!(scripts.len(), 145);
+    }
+
+    #[test]
+    fn parses_gecko_junkyard_map_save() {
+        let decompressed = try_decompress_dat2(GECKJUNK_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 207);
+        assert_eq!(header.global_variable_count, 8);
+
+        assert_eq!(variables.local_variables.len(), 207);
+        assert_eq!(variables.global_variables.len(), 8);
+
+        assert_eq!(scripts.len(), 21);
+    }
+
+    #[test]
+    fn parses_gecko_power_plant_map_save() {
+        let decompressed = try_decompress_dat2(GECKPWPL_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 327);
+        assert_eq!(header.global_variable_count, 20);
+
+        assert_eq!(variables.local_variables.len(), 327);
+        assert_eq!(variables.global_variables.len(), 20);
+
+        assert_eq!(scripts.len(), 50);
+    }
+
+    #[test]
+    fn parses_gecko_settlement_map_save() {
+        let decompressed = try_decompress_dat2(GECKSETL_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 332);
+        assert_eq!(header.global_variable_count, 9);
+
+        assert_eq!(variables.local_variables.len(), 332);
+        assert_eq!(variables.global_variables.len(), 9);
+
+        assert_eq!(scripts.len(), 34);
+    }
+
+    #[test]
+    fn parses_gecko_tunnel_map_map_save() {
+        let decompressed = try_decompress_dat2(GECKTUNL_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 109);
+        assert_eq!(header.global_variable_count, 8);
+
+        assert_eq!(variables.local_variables.len(), 109);
+        assert_eq!(variables.global_variables.len(), 8);
+
+        assert_eq!(scripts.len(), 12);
+    }
+
+    #[test]
+    fn parses_gstcav1_map_save() {
+        let decompressed = try_decompress_dat2(GSTCAV1_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 19);
+        assert_eq!(header.global_variable_count, 0);
+
+        assert_eq!(variables.local_variables.len(), 19);
+        assert_eq!(variables.global_variables.len(), 0);
+
+        assert_eq!(scripts.len(), 6);
+    }
+
+    #[test]
+    fn parses_gstcav2_map_save() {
+        let decompressed = try_decompress_dat2(GSTCAV2_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 61);
+        assert_eq!(header.global_variable_count, 0);
+
+        assert_eq!(variables.local_variables.len(), 61);
+        assert_eq!(variables.global_variables.len(), 0);
+
+        assert_eq!(scripts.len(), 7);
+    }
+
+    #[test]
+    fn parses_gstfarm_map_save() {
+        let decompressed = try_decompress_dat2(GSTFARM_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 25);
+        assert_eq!(header.global_variable_count, 1);
+
+        assert_eq!(variables.local_variables.len(), 25);
+        assert_eq!(variables.global_variables.len(), 1);
+
+        assert_eq!(scripts.len(), 42);
+    }
+
+    #[test]
+    fn parses_klacanyn_map_save() {
+        let decompressed = try_decompress_dat2(KLACANYN_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 20);
+        assert_eq!(header.global_variable_count, 19);
+
+        assert_eq!(variables.local_variables.len(), 20);
+        assert_eq!(variables.global_variables.len(), 19);
+
+        assert_eq!(scripts.len(), 1);
+    }
+
+    #[test]
+    fn parses_klamath_village_map_save() {
+        let decompressed = try_decompress_dat2(KLADWTWN_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 690);
+        assert_eq!(header.global_variable_count, 19);
+
+        assert_eq!(variables.local_variables.len(), 690);
+        assert_eq!(variables.global_variables.len(), 19);
+
+        assert_eq!(scripts.len(), 85);
+    }
+
+    #[test]
+    fn parses_klamath_graze_map_map_save() {
+        let decompressed = try_decompress_dat2(KLAGRAZ_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 20);
+        assert_eq!(header.global_variable_count, 20);
+
+        assert_eq!(variables.local_variables.len(), 20);
+        assert_eq!(variables.global_variables.len(), 20);
+
+        assert_eq!(scripts.len(), 5);
+    }
+
+    #[test]
+    fn parses_arroyo_bridge_1_map_save() {
+        let decompressed = try_decompress_dat2(KLATOXCV_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 38);
+        assert_eq!(header.global_variable_count, 18);
+
+        assert_eq!(variables.local_variables.len(), 38);
+        assert_eq!(variables.global_variables.len(), 18);
+
+        assert_eq!(scripts.len(), 28);
+    }
+
+    #[test]
+    fn parses_klatrap_map_save() {
+        let decompressed = try_decompress_dat2(KLATRAP_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 10);
+        assert_eq!(header.global_variable_count, 0);
+
+        assert_eq!(variables.local_variables.len(), 10);
+        assert_eq!(variables.global_variables.len(), 0);
+
+        assert_eq!(scripts.len(), 3);
+    }
+
+    #[test]
+    fn parses_modgard_map_save() {
+        let decompressed = try_decompress_dat2(MODGARD_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 0);
+        assert_eq!(header.global_variable_count, 1);
+
+        assert_eq!(variables.local_variables.len(), 0);
+        assert_eq!(variables.global_variables.len(), 1);
+
+        assert_eq!(scripts.len(), 0);
+    }
+
+    #[test]
+    fn parses_modinn_map_save() {
+        let decompressed = try_decompress_dat2(MODINN_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 264);
+        assert_eq!(header.global_variable_count, 2);
+
+        assert_eq!(variables.local_variables.len(), 264);
+        assert_eq!(variables.global_variables.len(), 2);
+
+        assert_eq!(scripts.len(), 41);
+    }
+
+    #[test]
+    fn parses_modmain_map_save() {
+        let decompressed = try_decompress_dat2(MODMAIN_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 417);
+        assert_eq!(header.global_variable_count, 4);
+
+        assert_eq!(variables.local_variables.len(), 417);
+        assert_eq!(variables.global_variables.len(), 4);
+
+        assert_eq!(scripts.len(), 55);
+    }
+
+    #[test]
+    fn parses_ncr_map_entrance_map_save() {
+        let decompressed = try_decompress_dat2(NCRENT_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 634);
+        assert_eq!(header.global_variable_count, 7);
+
+        assert_eq!(variables.local_variables.len(), 634);
+        assert_eq!(variables.global_variables.len(), 7);
+
+        assert_eq!(scripts.len(), 84);
+    }
+
+    #[test]
+    fn parses_newr1_map_save() {
+        let decompressed = try_decompress_dat2(NEWR1_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 858);
+        assert_eq!(header.global_variable_count, 1);
+
+        assert_eq!(variables.local_variables.len(), 858);
+        assert_eq!(variables.global_variables.len(), 1);
+
+        assert_eq!(scripts.len(), 191);
+    }
+
+    #[test]
+    fn parses_newr2_map_save() {
+        let decompressed = try_decompress_dat2(NEWR2_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 949);
+        assert_eq!(header.global_variable_count, 1);
+
+        assert_eq!(variables.local_variables.len(), 949);
+        assert_eq!(variables.global_variables.len(), 1);
+
+        assert_eq!(scripts.len(), 215);
+    }
+
+    #[test]
+    fn parses_newr3_map_save() {
+        let decompressed = try_decompress_dat2(NEWR3_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 221);
+        assert_eq!(header.global_variable_count, 0);
+
+        assert_eq!(variables.local_variables.len(), 221);
+        assert_eq!(variables.global_variables.len(), 0);
+
+        assert_eq!(scripts.len(), 56);
+    }
+
+    #[test]
+    fn parses_newrst_map_save() {
+        let decompressed = try_decompress_dat2(NEWRST_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 319);
+        assert_eq!(header.global_variable_count, 2);
+
+        assert_eq!(variables.local_variables.len(), 319);
+        assert_eq!(variables.global_variables.len(), 2);
+
+        assert_eq!(scripts.len(), 73);
+    }
+
+    #[test]
+    fn parses_raiders_map_2_map_save() {
+        let decompressed = try_decompress_dat2(RAIDERS2_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 337);
+        assert_eq!(header.global_variable_count, 3);
+
+        assert_eq!(variables.local_variables.len(), 337);
+        assert_eq!(variables.global_variables.len(), 3);
+
+        assert_eq!(scripts.len(), 177);
+    }
+
+    #[test]
+    fn parses_denbus2_map_save() {
+        let decompressed = try_decompress_dat2(REDDOWN_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 757);
+        assert_eq!(header.global_variable_count, 5);
+
+        assert_eq!(variables.local_variables.len(), 757);
+        assert_eq!(variables.global_variables.len(), 5);
+
+        assert_eq!(scripts.len(), 96);
+    }
+
+    #[test]
+    fn parses_redding_mine_entrance_map_save() {
+        let decompressed = try_decompress_dat2(REDMENT_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 808);
+        assert_eq!(header.global_variable_count, 11);
+
+        assert_eq!(variables.local_variables.len(), 808);
+        assert_eq!(variables.global_variables.len(), 11);
+
+        assert_eq!(scripts.len(), 94);
+    }
+
+    #[test]
+    fn parses_arroyo_caves_map_save() {
+        let decompressed = try_decompress_dat2(REDMTUN_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 6);
+        assert_eq!(header.global_variable_count, 0);
+
+        assert_eq!(variables.local_variables.len(), 6);
+        assert_eq!(variables.global_variables.len(), 0);
+
+        assert_eq!(scripts.len(), 13);
+    }
+
+    #[test]
+    fn parses_arroyo_caves_2_map_save() {
+        let decompressed = try_decompress_dat2(REDWAME_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 185);
+        assert_eq!(header.global_variable_count, 16);
+
+        assert_eq!(variables.local_variables.len(), 185);
+        assert_eq!(variables.global_variables.len(), 16);
+
+        assert_eq!(scripts.len(), 35);
+    }
+
+    #[test]
+    fn parses_v15ent_map_save() {
+        let decompressed = try_decompress_dat2(V15ENT_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 106);
+        assert_eq!(header.global_variable_count, 2);
+
+        assert_eq!(variables.local_variables.len(), 106);
+        assert_eq!(variables.global_variables.len(), 2);
+
+        assert_eq!(scripts.len(), 18);
+    }
+
+    #[test]
+    fn parses_vault15_secret_entrance_map_map_save() {
+        let decompressed = try_decompress_dat2(V15SENT_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 60);
+        assert_eq!(header.global_variable_count, 1);
+
+        assert_eq!(variables.local_variables.len(), 60);
+        assert_eq!(variables.global_variables.len(), 1);
+
+        assert_eq!(scripts.len(), 7);
+    }
+
+    #[test]
+    fn parses_arroyo_bridge_2_map_save() {
+        let decompressed = try_decompress_dat2(VCTYCOCL_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 400);
+        assert_eq!(header.global_variable_count, 1);
+
+        assert_eq!(variables.local_variables.len(), 400);
+        assert_eq!(variables.global_variables.len(), 1);
+
+        assert_eq!(scripts.len(), 52);
+    }
+
+    #[test]
+    fn parses_vctyctyd_map_save() {
+        let decompressed = try_decompress_dat2(VCTYCTYD_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 277);
+        assert_eq!(header.global_variable_count, 7);
+
+        assert_eq!(variables.local_variables.len(), 277);
+        assert_eq!(variables.global_variables.len(), 7);
+
+        assert_eq!(scripts.len(), 49);
+    }
+
+    #[test]
+    fn parses_arroyo_bridge_3_map_save() {
+        let decompressed = try_decompress_dat2(VCTYDWTN_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 460);
+        assert_eq!(header.global_variable_count, 9);
+
+        assert_eq!(variables.local_variables.len(), 460);
+        assert_eq!(variables.global_variables.len(), 9);
+
+        assert_eq!(scripts.len(), 74);
+    }
+
+    #[test]
+    fn parses_vault_city_vault_map_save() {
+        let decompressed = try_decompress_dat2(VCTYVLT_SAVE.to_vec());
+        let (header, variables, scripts) = dat2(&decompressed);
+
+        assert_eq!(header.local_variable_count, 87);
+        assert_eq!(header.global_variable_count, 5);
+
+        assert_eq!(variables.local_variables.len(), 87);
+        assert_eq!(variables.global_variables.len(), 5);
+
+        assert_eq!(scripts.len(), 25);
+    }
 }
