@@ -1,3 +1,5 @@
+use fallout_save_editor::ui::run_ui;
+
 fn main() {
-    println!("Ain't doing shit yet");
+    run_ui();
 }

@@ -9,3 +9,7 @@ edition = "2021"
 nom = "7"
 flate2 = "1.0"
 bitflags = "2.5.0"
+slint = "1.6.0"
+
+[build-dependencies]
+slint-build = "1.6.0"
