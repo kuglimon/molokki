@@ -553,7 +553,7 @@ pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
                 // Consume rest of the buffer
                 take(junk_size),
             )),
-            move |(_prefix_junk, id, _, local_variable_count, local_variable_offset, _): (
+            move |(_prefix_junk, id, _, local_variable_offset, local_variable_count, _): (
                 &[u8],
                 i32,
                 _,
