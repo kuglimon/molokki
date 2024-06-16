@@ -205,6 +205,13 @@ pub struct MapVariables {
     pub local_variables: Vec<i32>,
 }
 
+impl MapVariables {
+    pub fn local_variables_by_offset(&self, offset: usize, count: usize) -> &[i32] {
+        let end = offset + count;
+        &self.local_variables[offset..end]
+    }
+}
+
 // A lot of the fields are unknown. We've left them in the struct to make it obvious what the
 // format is. Rather than having the parser jump over some random bytes. This way you don't have to
 // jump around from the sources to the internet to check why we're skipping some offsets.
