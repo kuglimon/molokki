@@ -85,7 +85,7 @@ fn parses_ncr_downtown_map_save() {
     let decompressed = try_decompress_dat2(NCR1_SAVE.to_vec());
     let (map_save, map_variables, scripts) = dat2(&decompressed);
 
-    assert_eq!(map_save.version, MapVersion::Fallout2 as u32);
+    assert_eq!(map_save.version, MapVersion::Fallout2);
     assert_eq!(map_save.filename, "NCR1.SAV".to_string());
     assert_eq!(map_save.default_player_position, 13915);
     assert_eq!(map_save.default_player_elevation, 0);

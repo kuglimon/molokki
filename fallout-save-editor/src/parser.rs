@@ -27,9 +27,22 @@ use std::str;
 const SCRIPT_GROUP_COUNT: usize = 5;
 const SCRIPTS_IN_GROUP: usize = 16;
 
+#[derive(Clone, Debug, PartialEq)]
 pub enum MapVersion {
     Fallout1 = 19,
     Fallout2 = 20,
+}
+
+impl TryFrom<u32> for MapVersion {
+    type Error = ();
+
+    fn try_from(v: u32) -> Result<Self, Self::Error> {
+        match v {
+            x if x == MapVersion::Fallout1 as u32 => Ok(MapVersion::Fallout1),
+            x if x == MapVersion::Fallout2 as u32 => Ok(MapVersion::Fallout2),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -169,7 +182,7 @@ bitflags! {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MapHeader {
-    pub version: u32,
+    pub version: MapVersion,
     pub filename: String,
     pub default_player_position: i32,
     pub default_player_elevation: i32,
@@ -282,12 +295,22 @@ pub fn map_variable_values(
     }
 }
 
+fn map_version(input: &[u8]) -> IResult<&[u8], MapVersion> {
+    map(be_u32, |version| {
+        // Having 0 flags is troublesome for bitflags. This is probably overthinking. We need to
+        // flip all the other bits but LSB. This breaks binary compatibility.
+
+        // FIXME(tatu): this man loves unwrapping
+        MapVersion::try_from(version).expect("should have parsed map version")
+    })(input)
+}
+
 pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     let start = input.len();
     println!("starting from {start}");
     let header = map(
         tuple((
-            be_u32,
+            map_version,
             map_name,
             be_i32,
             be_i32,
