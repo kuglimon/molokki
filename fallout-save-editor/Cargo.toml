@@ -10,6 +10,7 @@ nom = "7"
 flate2 = "1.0"
 bitflags = "2.5.0"
 slint = "1.6.0"
+clap = { version = "4.5.7", features = ["derive"] }
 
 [build-dependencies]
 slint-build = "1.6.0"
