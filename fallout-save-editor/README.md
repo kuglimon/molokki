@@ -11,12 +11,12 @@ Features:
 
 # But why?
 
-Sulik didn't put his weapon away and now half of NCR want's to kill me. I
-stunlocked myself on making my own editor and introduce some forced positivity
+Sulik didn't put his weapon away and now half of NCR wants to kill me. I
+stunlocked myself to make my own save editor and introduce some forced pacifism
 into NCR.
 
-Some of other available mod tools were flagged by totalvirus as viruses. Others
-were closed source, which I think doesn't help the modding community at all.
+Some of the other available mod tools were flagged as viruses by totalvirus.
+Many were closed source, which doesn't help the modding community at all.
 
 # Usage
 
