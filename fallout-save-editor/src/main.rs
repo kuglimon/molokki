@@ -21,8 +21,8 @@ use nom::{
 use bitflags::bitflags;
 
 use core::fmt;
+use std::io::Read;
 use std::str;
-use std::{borrow::Cow, io::Read};
 
 const SCRIPT_GROUP_COUNT: usize = 5;
 const SCRIPTS_IN_GROUP: usize = 16;
