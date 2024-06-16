@@ -1,5 +1,5 @@
 use fallout_save_editor::parser::{
-    dat2, header, try_decompress_dat2, MapFlags, MapVersion, ScriptTagType,
+    header, map_save, try_gunzip_buffer, MapFlags, MapVersion, ScriptTagType,
 };
 
 // Early/midgame save with NCR npcs on aggro
@@ -71,7 +71,7 @@ fn headers() {
 
 #[test]
 fn decompresses_dat2_files() {
-    let decompressed = try_decompress_dat2(NCR1_SAVE.to_vec());
+    let decompressed = try_gunzip_buffer(NCR1_SAVE.to_vec());
 
     assert_eq!(
         357576,
@@ -82,8 +82,8 @@ fn decompresses_dat2_files() {
 
 #[test]
 fn parses_ncr_downtown_map_save() {
-    let decompressed = try_decompress_dat2(NCR1_SAVE.to_vec());
-    let (map_save, map_variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NCR1_SAVE.to_vec());
+    let (map_save, map_variables, scripts) = map_save(&decompressed);
 
     assert_eq!(map_save.version, MapVersion::Fallout2);
     assert_eq!(map_save.filename, "NCR1.SAV".to_string());
@@ -122,32 +122,32 @@ fn parses_ncr_downtown_map_save() {
 
 #[test]
 fn parses_arroyo_bridge_map_save() {
-    let decompressed = try_decompress_dat2(ARBRIDGE_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARBRIDGE_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     assert_eq!(scripts.len(), 3);
 }
 
 #[test]
 fn parses_raiders_map_1_map_save() {
-    let decompressed = try_decompress_dat2(RAIDERS1_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(RAIDERS1_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     assert_eq!(scripts.len(), 0);
 }
 
 #[test]
 fn parses_arroy_caves_map_save() {
-    let decompressed = try_decompress_dat2(ARCAVES_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARCAVES_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     assert_eq!(scripts.len(), 26);
 }
 
 #[test]
 fn parses_arroy_village_garden_map_save() {
-    let decompressed = try_decompress_dat2(ARGARDEN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARGARDEN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     assert_eq!(scripts.len(), 10);
 }
@@ -156,8 +156,8 @@ fn parses_arroy_village_garden_map_save() {
 // ARCAVES.SAVE... Maybe this is the temple?
 #[test]
 fn parses_arroy_temple_map_save() {
-    let decompressed = try_decompress_dat2(ARTEMPLE_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARTEMPLE_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 15);
     assert_eq!(header.global_variable_count, 0);
@@ -170,8 +170,8 @@ fn parses_arroy_temple_map_save() {
 
 #[test]
 fn parses_arroy_village_map_save() {
-    let decompressed = try_decompress_dat2(ARVILLAG_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARVILLAG_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 296);
     assert_eq!(header.global_variable_count, 5);
@@ -184,8 +184,8 @@ fn parses_arroy_village_map_save() {
 
 #[test]
 fn parses_broken_hills_village_1_map_save() {
-    let decompressed = try_decompress_dat2(BROKEN1_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(BROKEN1_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 913);
     assert_eq!(header.global_variable_count, 31);
@@ -198,8 +198,8 @@ fn parses_broken_hills_village_1_map_save() {
 
 #[test]
 fn parses_broken_hills_village_2_map_save() {
-    let decompressed = try_decompress_dat2(BROKEN2_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(BROKEN2_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 521);
     assert_eq!(header.global_variable_count, 25);
@@ -212,8 +212,8 @@ fn parses_broken_hills_village_2_map_save() {
 
 #[test]
 fn parses_the_den_business_area_1_map_save() {
-    let decompressed = try_decompress_dat2(DENBUS1_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(DENBUS1_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 798);
     assert_eq!(header.global_variable_count, 10);
@@ -226,8 +226,8 @@ fn parses_the_den_business_area_1_map_save() {
 
 #[test]
 fn parses_the_den_business_area_2_map_save() {
-    let decompressed = try_decompress_dat2(DENBUS2_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(DENBUS2_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 853);
     assert_eq!(header.global_variable_count, 13);
@@ -240,8 +240,8 @@ fn parses_the_den_business_area_2_map_save() {
 
 #[test]
 fn parses_gecko_junkyard_map_save() {
-    let decompressed = try_decompress_dat2(GECKJUNK_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GECKJUNK_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 207);
     assert_eq!(header.global_variable_count, 8);
@@ -254,8 +254,8 @@ fn parses_gecko_junkyard_map_save() {
 
 #[test]
 fn parses_gecko_power_plant_map_save() {
-    let decompressed = try_decompress_dat2(GECKPWPL_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GECKPWPL_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 327);
     assert_eq!(header.global_variable_count, 20);
@@ -268,8 +268,8 @@ fn parses_gecko_power_plant_map_save() {
 
 #[test]
 fn parses_gecko_settlement_map_save() {
-    let decompressed = try_decompress_dat2(GECKSETL_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GECKSETL_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 332);
     assert_eq!(header.global_variable_count, 9);
@@ -282,8 +282,8 @@ fn parses_gecko_settlement_map_save() {
 
 #[test]
 fn parses_gecko_tunnel_map_map_save() {
-    let decompressed = try_decompress_dat2(GECKTUNL_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GECKTUNL_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 109);
     assert_eq!(header.global_variable_count, 8);
@@ -296,8 +296,8 @@ fn parses_gecko_tunnel_map_map_save() {
 
 #[test]
 fn parses_gstcav1_map_save() {
-    let decompressed = try_decompress_dat2(GSTCAV1_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GSTCAV1_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 19);
     assert_eq!(header.global_variable_count, 0);
@@ -310,8 +310,8 @@ fn parses_gstcav1_map_save() {
 
 #[test]
 fn parses_gstcav2_map_save() {
-    let decompressed = try_decompress_dat2(GSTCAV2_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GSTCAV2_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 61);
     assert_eq!(header.global_variable_count, 0);
@@ -324,8 +324,8 @@ fn parses_gstcav2_map_save() {
 
 #[test]
 fn parses_gstfarm_map_save() {
-    let decompressed = try_decompress_dat2(GSTFARM_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GSTFARM_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 25);
     assert_eq!(header.global_variable_count, 1);
@@ -338,8 +338,8 @@ fn parses_gstfarm_map_save() {
 
 #[test]
 fn parses_klacanyn_map_save() {
-    let decompressed = try_decompress_dat2(KLACANYN_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLACANYN_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 20);
     assert_eq!(header.global_variable_count, 19);
@@ -352,8 +352,8 @@ fn parses_klacanyn_map_save() {
 
 #[test]
 fn parses_klamath_village_map_save() {
-    let decompressed = try_decompress_dat2(KLADWTWN_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLADWTWN_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 690);
     assert_eq!(header.global_variable_count, 19);
@@ -366,8 +366,8 @@ fn parses_klamath_village_map_save() {
 
 #[test]
 fn parses_klamath_graze_map_map_save() {
-    let decompressed = try_decompress_dat2(KLAGRAZ_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLAGRAZ_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 20);
     assert_eq!(header.global_variable_count, 20);
@@ -380,8 +380,8 @@ fn parses_klamath_graze_map_map_save() {
 
 #[test]
 fn parses_arroyo_bridge_1_map_save() {
-    let decompressed = try_decompress_dat2(KLATOXCV_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLATOXCV_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 38);
     assert_eq!(header.global_variable_count, 18);
@@ -394,8 +394,8 @@ fn parses_arroyo_bridge_1_map_save() {
 
 #[test]
 fn parses_klatrap_map_save() {
-    let decompressed = try_decompress_dat2(KLATRAP_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLATRAP_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 10);
     assert_eq!(header.global_variable_count, 0);
@@ -408,8 +408,8 @@ fn parses_klatrap_map_save() {
 
 #[test]
 fn parses_modgard_map_save() {
-    let decompressed = try_decompress_dat2(MODGARD_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(MODGARD_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 0);
     assert_eq!(header.global_variable_count, 1);
@@ -422,8 +422,8 @@ fn parses_modgard_map_save() {
 
 #[test]
 fn parses_modinn_map_save() {
-    let decompressed = try_decompress_dat2(MODINN_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(MODINN_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 264);
     assert_eq!(header.global_variable_count, 2);
@@ -436,8 +436,8 @@ fn parses_modinn_map_save() {
 
 #[test]
 fn parses_modmain_map_save() {
-    let decompressed = try_decompress_dat2(MODMAIN_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(MODMAIN_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 417);
     assert_eq!(header.global_variable_count, 4);
@@ -450,8 +450,8 @@ fn parses_modmain_map_save() {
 
 #[test]
 fn parses_ncr_map_entrance_map_save() {
-    let decompressed = try_decompress_dat2(NCRENT_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NCRENT_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 634);
     assert_eq!(header.global_variable_count, 7);
@@ -464,8 +464,8 @@ fn parses_ncr_map_entrance_map_save() {
 
 #[test]
 fn parses_newr1_map_save() {
-    let decompressed = try_decompress_dat2(NEWR1_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NEWR1_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 858);
     assert_eq!(header.global_variable_count, 1);
@@ -478,8 +478,8 @@ fn parses_newr1_map_save() {
 
 #[test]
 fn parses_newr2_map_save() {
-    let decompressed = try_decompress_dat2(NEWR2_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NEWR2_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 949);
     assert_eq!(header.global_variable_count, 1);
@@ -492,8 +492,8 @@ fn parses_newr2_map_save() {
 
 #[test]
 fn parses_newr3_map_save() {
-    let decompressed = try_decompress_dat2(NEWR3_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NEWR3_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 221);
     assert_eq!(header.global_variable_count, 0);
@@ -506,8 +506,8 @@ fn parses_newr3_map_save() {
 
 #[test]
 fn parses_newrst_map_save() {
-    let decompressed = try_decompress_dat2(NEWRST_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NEWRST_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 319);
     assert_eq!(header.global_variable_count, 2);
@@ -520,8 +520,8 @@ fn parses_newrst_map_save() {
 
 #[test]
 fn parses_raiders_map_2_map_save() {
-    let decompressed = try_decompress_dat2(RAIDERS2_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(RAIDERS2_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 337);
     assert_eq!(header.global_variable_count, 3);
@@ -534,8 +534,8 @@ fn parses_raiders_map_2_map_save() {
 
 #[test]
 fn parses_denbus2_map_save() {
-    let decompressed = try_decompress_dat2(REDDOWN_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(REDDOWN_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 757);
     assert_eq!(header.global_variable_count, 5);
@@ -548,8 +548,8 @@ fn parses_denbus2_map_save() {
 
 #[test]
 fn parses_redding_mine_entrance_map_save() {
-    let decompressed = try_decompress_dat2(REDMENT_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(REDMENT_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 808);
     assert_eq!(header.global_variable_count, 11);
@@ -562,8 +562,8 @@ fn parses_redding_mine_entrance_map_save() {
 
 #[test]
 fn parses_arroyo_caves_map_save() {
-    let decompressed = try_decompress_dat2(REDMTUN_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(REDMTUN_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 6);
     assert_eq!(header.global_variable_count, 0);
@@ -576,8 +576,8 @@ fn parses_arroyo_caves_map_save() {
 
 #[test]
 fn parses_arroyo_caves_2_map_save() {
-    let decompressed = try_decompress_dat2(REDWAME_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(REDWAME_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 185);
     assert_eq!(header.global_variable_count, 16);
@@ -590,8 +590,8 @@ fn parses_arroyo_caves_2_map_save() {
 
 #[test]
 fn parses_v15ent_map_save() {
-    let decompressed = try_decompress_dat2(V15ENT_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(V15ENT_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 106);
     assert_eq!(header.global_variable_count, 2);
@@ -604,8 +604,8 @@ fn parses_v15ent_map_save() {
 
 #[test]
 fn parses_vault15_secret_entrance_map_map_save() {
-    let decompressed = try_decompress_dat2(V15SENT_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(V15SENT_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 60);
     assert_eq!(header.global_variable_count, 1);
@@ -618,8 +618,8 @@ fn parses_vault15_secret_entrance_map_map_save() {
 
 #[test]
 fn parses_arroyo_bridge_2_map_save() {
-    let decompressed = try_decompress_dat2(VCTYCOCL_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(VCTYCOCL_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 400);
     assert_eq!(header.global_variable_count, 1);
@@ -632,8 +632,8 @@ fn parses_arroyo_bridge_2_map_save() {
 
 #[test]
 fn parses_vctyctyd_map_save() {
-    let decompressed = try_decompress_dat2(VCTYCTYD_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(VCTYCTYD_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 277);
     assert_eq!(header.global_variable_count, 7);
@@ -646,8 +646,8 @@ fn parses_vctyctyd_map_save() {
 
 #[test]
 fn parses_arroyo_bridge_3_map_save() {
-    let decompressed = try_decompress_dat2(VCTYDWTN_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(VCTYDWTN_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 460);
     assert_eq!(header.global_variable_count, 9);
@@ -660,8 +660,8 @@ fn parses_arroyo_bridge_3_map_save() {
 
 #[test]
 fn parses_vault_city_vault_map_save() {
-    let decompressed = try_decompress_dat2(VCTYVLT_SAVE.to_vec());
-    let (header, variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(VCTYVLT_SAVE.to_vec());
+    let (header, variables, scripts) = map_save(&decompressed);
 
     assert_eq!(header.local_variable_count, 87);
     assert_eq!(header.global_variable_count, 5);
@@ -674,8 +674,8 @@ fn parses_vault_city_vault_map_save() {
 
 #[test]
 fn parses_arroyo_bridge_map_save_scripts() {
-    let decompressed = try_decompress_dat2(ARBRIDGE_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARBRIDGE_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -701,8 +701,8 @@ fn parses_arroyo_bridge_map_save_scripts() {
 
 #[test]
 fn parses_arroyo_caves_map_save_scripts() {
-    let decompressed = try_decompress_dat2(ARCAVES_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARCAVES_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -889,8 +889,8 @@ fn parses_arroyo_caves_map_save_scripts() {
 
 #[test]
 fn parses_arroyo_village_map_save_scripts() {
-    let decompressed = try_decompress_dat2(ARGARDEN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARGARDEN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -965,8 +965,8 @@ fn parses_arroyo_village_map_save_scripts() {
 
 #[test]
 fn parses_arroyo_caves_map_1_save_scripts() {
-    let decompressed = try_decompress_dat2(ARTEMPLE_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARTEMPLE_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -992,8 +992,8 @@ fn parses_arroyo_caves_map_1_save_scripts() {
 
 #[test]
 fn parses_arroyo_village_map_2_save_scripts() {
-    let decompressed = try_decompress_dat2(ARVILLAG_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(ARVILLAG_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -1985,8 +1985,8 @@ fn parses_arroyo_village_map_2_save_scripts() {
 
 #[test]
 fn parses_broken_hills_village_map_save_scripts() {
-    let decompressed = try_decompress_dat2(BROKEN1_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(BROKEN1_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -2677,8 +2677,8 @@ fn parses_broken_hills_village_map_save_scripts() {
 
 #[test]
 fn parses_broken_hills_village_map_1_save_scripts() {
-    let decompressed = try_decompress_dat2(BROKEN2_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(BROKEN2_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -3523,8 +3523,8 @@ fn parses_broken_hills_village_map_1_save_scripts() {
 
 #[test]
 fn parses_denbus1_map_save_scripts() {
-    let decompressed = try_decompress_dat2(DENBUS1_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(DENBUS1_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -4194,8 +4194,8 @@ fn parses_denbus1_map_save_scripts() {
 
 #[test]
 fn parses_denbus2_map_save_scripts() {
-    let decompressed = try_decompress_dat2(DENBUS2_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(DENBUS2_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -5215,8 +5215,8 @@ fn parses_denbus2_map_save_scripts() {
 
 #[test]
 fn parses_gecko_junkyard_map_map_save_scripts() {
-    let decompressed = try_decompress_dat2(GECKJUNK_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GECKJUNK_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -5368,8 +5368,8 @@ fn parses_gecko_junkyard_map_map_save_scripts() {
 
 #[test]
 fn parses_gecko_power_plant_map_script_map_save_scripts() {
-    let decompressed = try_decompress_dat2(GECKPWPL_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GECKPWPL_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -5724,8 +5724,8 @@ fn parses_gecko_power_plant_map_script_map_save_scripts() {
 
 #[test]
 fn parses_gecko_settlement_map_map_save_scripts() {
-    let decompressed = try_decompress_dat2(GECKSETL_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GECKSETL_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -5968,8 +5968,8 @@ fn parses_gecko_settlement_map_map_save_scripts() {
 
 #[test]
 fn parses_gecko_tunnel_map_map_save_scripts() {
-    let decompressed = try_decompress_dat2(GECKTUNL_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GECKTUNL_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -6058,8 +6058,8 @@ fn parses_gecko_tunnel_map_map_save_scripts() {
 
 #[test]
 fn parses_gstcav1_map_save_scripts() {
-    let decompressed = try_decompress_dat2(GSTCAV1_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GSTCAV1_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -6106,8 +6106,8 @@ fn parses_gstcav1_map_save_scripts() {
 
 #[test]
 fn parses_gstcav2_map_save_scripts() {
-    let decompressed = try_decompress_dat2(GSTCAV2_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GSTCAV2_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -6161,8 +6161,8 @@ fn parses_gstcav2_map_save_scripts() {
 
 #[test]
 fn parses_gstfarm_map_save_scripts() {
-    let decompressed = try_decompress_dat2(GSTFARM_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(GSTFARM_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -6461,8 +6461,8 @@ fn parses_gstfarm_map_save_scripts() {
 
 #[test]
 fn parses_klacanyn_map_save_scripts() {
-    let decompressed = try_decompress_dat2(KLACANYN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLACANYN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -6474,8 +6474,8 @@ fn parses_klacanyn_map_save_scripts() {
 
 #[test]
 fn parses_klamath_village_map_save_scripts() {
-    let decompressed = try_decompress_dat2(KLADWTWN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLADWTWN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -7075,8 +7075,8 @@ fn parses_klamath_village_map_save_scripts() {
 
 #[test]
 fn parses_klamath_graze_map_map_save_scripts() {
-    let decompressed = try_decompress_dat2(KLAGRAZ_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLAGRAZ_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -7116,8 +7116,8 @@ fn parses_klamath_graze_map_map_save_scripts() {
 
 #[test]
 fn parses_arroyo_bridge_map_1_save_scripts() {
-    let decompressed = try_decompress_dat2(KLATOXCV_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLATOXCV_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -7318,8 +7318,8 @@ fn parses_arroyo_bridge_map_1_save_scripts() {
 
 #[test]
 fn parses_klatrap_map_save_scripts() {
-    let decompressed = try_decompress_dat2(KLATRAP_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(KLATRAP_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -7345,14 +7345,14 @@ fn parses_klatrap_map_save_scripts() {
 
 #[test]
 fn parses_modgard_map_save_scripts() {
-    let decompressed = try_decompress_dat2(MODGARD_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(MODGARD_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 }
 
 #[test]
 fn parses_modinn_map_save_scripts() {
-    let decompressed = try_decompress_dat2(MODINN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(MODINN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -7644,8 +7644,8 @@ fn parses_modinn_map_save_scripts() {
 
 #[test]
 fn parses_modmain_map_save_scripts() {
-    let decompressed = try_decompress_dat2(MODMAIN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(MODMAIN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -8035,8 +8035,8 @@ fn parses_modmain_map_save_scripts() {
 
 #[test]
 fn parses_ncr_map_1_map_save_scripts() {
-    let decompressed = try_decompress_dat2(NCR1_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NCR1_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -8636,8 +8636,8 @@ fn parses_ncr_map_1_map_save_scripts() {
 
 #[test]
 fn parses_ncr_map_entrance_map_save_scripts() {
-    let decompressed = try_decompress_dat2(NCRENT_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NCRENT_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -9230,8 +9230,8 @@ fn parses_ncr_map_entrance_map_save_scripts() {
 
 #[test]
 fn parses_newr1_map_save_scripts() {
-    let decompressed = try_decompress_dat2(NEWR1_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NEWR1_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -10573,8 +10573,8 @@ fn parses_newr1_map_save_scripts() {
 
 #[test]
 fn parses_newr2_map_save_scripts() {
-    let decompressed = try_decompress_dat2(NEWR2_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NEWR2_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -12084,8 +12084,8 @@ fn parses_newr2_map_save_scripts() {
 
 #[test]
 fn parses_newr3_map_save_scripts() {
-    let decompressed = try_decompress_dat2(NEWR3_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NEWR3_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -12482,8 +12482,8 @@ fn parses_newr3_map_save_scripts() {
 
 #[test]
 fn parses_newrst_map_save_scripts() {
-    let decompressed = try_decompress_dat2(NEWRST_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(NEWRST_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -12999,14 +12999,14 @@ fn parses_newrst_map_save_scripts() {
 
 #[test]
 fn parses_raiders_map_1_map_save_scripts() {
-    let decompressed = try_decompress_dat2(RAIDERS1_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(RAIDERS1_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 }
 
 #[test]
 fn parses_raiders_map_2_map_save_scripts() {
-    let decompressed = try_decompress_dat2(RAIDERS2_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(RAIDERS2_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -14250,8 +14250,8 @@ fn parses_raiders_map_2_map_save_scripts() {
 
 #[test]
 fn parses_denbus2_map_1_save_scripts() {
-    let decompressed = try_decompress_dat2(REDDOWN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(REDDOWN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -14928,8 +14928,8 @@ fn parses_denbus2_map_1_save_scripts() {
 
 #[test]
 fn parses_redding_mine_entrance_map_save_scripts() {
-    let decompressed = try_decompress_dat2(REDMENT_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(REDMENT_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -15592,8 +15592,8 @@ fn parses_redding_mine_entrance_map_save_scripts() {
 
 #[test]
 fn parses_arroyo_caves_1_save_scripts() {
-    let decompressed = try_decompress_dat2(REDMTUN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(REDMTUN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -15689,8 +15689,8 @@ fn parses_arroyo_caves_1_save_scripts() {
 
 #[test]
 fn parses_arroyo_caves_2_save_scripts() {
-    let decompressed = try_decompress_dat2(REDWAME_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(REDWAME_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -15940,8 +15940,8 @@ fn parses_arroyo_caves_2_save_scripts() {
 
 #[test]
 fn parses_v15ent_map_save_scripts() {
-    let decompressed = try_decompress_dat2(V15ENT_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(V15ENT_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -16072,8 +16072,8 @@ fn parses_v15ent_map_save_scripts() {
 
 #[test]
 fn parses_vault15_secret_entrance_map_map_save_scripts() {
-    let decompressed = try_decompress_dat2(V15SENT_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(V15SENT_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -16127,8 +16127,8 @@ fn parses_vault15_secret_entrance_map_map_save_scripts() {
 
 #[test]
 fn parses_arroyo_bridge_2_save_scripts() {
-    let decompressed = try_decompress_dat2(VCTYCOCL_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(VCTYCOCL_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -16497,8 +16497,8 @@ fn parses_arroyo_bridge_2_save_scripts() {
 
 #[test]
 fn parses_vctyctyd_map_save_scripts() {
-    let decompressed = try_decompress_dat2(VCTYCTYD_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(VCTYCTYD_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -16846,8 +16846,8 @@ fn parses_vctyctyd_map_save_scripts() {
 
 #[test]
 fn parses_arroyo_bridge_1_save_scripts() {
-    let decompressed = try_decompress_dat2(VCTYDWTN_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(VCTYDWTN_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 
@@ -17370,8 +17370,8 @@ fn parses_arroyo_bridge_1_save_scripts() {
 
 #[test]
 fn parses_vault_city_vault_map_save_scripts() {
-    let decompressed = try_decompress_dat2(VCTYVLT_SAVE.to_vec());
-    let (_, _, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(VCTYVLT_SAVE.to_vec());
+    let (_, _, scripts) = map_save(&decompressed);
 
     let script = &scripts[0];
 

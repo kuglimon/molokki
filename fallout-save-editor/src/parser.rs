@@ -305,7 +305,7 @@ fn map_version(input: &[u8]) -> IResult<&[u8], MapVersion> {
     })(input)
 }
 
-pub fn dat2(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
+pub fn map_save(input: &[u8]) -> (MapHeader, MapVariables, Vec<Script>) {
     let start = input.len();
     println!("starting from {start}");
     let header = map(
@@ -600,7 +600,7 @@ pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
     })(input)
 }
 
-pub fn try_decompress_dat2(input: Vec<u8>) -> Vec<u8> {
+pub fn try_gunzip_buffer(input: Vec<u8>) -> Vec<u8> {
     // decompress if needed
     if &input[..2] == &[0x1f, 0x8b] {
         let mut decompressed: Vec<u8> = Vec::new();

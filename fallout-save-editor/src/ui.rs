@@ -2,7 +2,7 @@ use std::fs;
 
 use clap::Parser;
 
-use crate::parser::{dat2, try_decompress_dat2};
+use crate::parser::{map_save, try_gunzip_buffer};
 
 slint::slint! {
     export component HelloWorld {
@@ -31,8 +31,8 @@ pub fn run_terminal_ui() {
     let args = Args::parse();
     let content = fs::read(args.save_file_path).expect("could not read save file");
 
-    let decompressed = try_decompress_dat2(content);
-    let (map_save, map_variables, scripts) = dat2(&decompressed);
+    let decompressed = try_gunzip_buffer(content);
+    let (map_save, map_variables, scripts) = map_save(&decompressed);
 
     dbg!(map_save);
     dbg!(map_variables);
