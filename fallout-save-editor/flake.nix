@@ -24,6 +24,9 @@
 
         # tmuxinator for testing feature parity
         (ruby.withPackages (ps: with ps; [ tmuxinator ]))
+
+        # Scripts under hacks use python
+        (python3.withPackages (p: [ p.requests ]))
       ];
     };
   };
