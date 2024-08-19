@@ -55,7 +55,6 @@ impl ProjectState {
 
 pub struct NewProject {}
 
-
 // TODO(tatu): Add default values
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
@@ -126,7 +125,6 @@ impl Project {
                     .to_string();
 
                 let command = match raw_command.as_str() {
-                    "nil" | "null" => None,
                     c if c.is_empty() => None,
                     c => Some(c.to_string()),
                 };
@@ -156,7 +154,7 @@ impl Project {
 
 #[cfg(test)]
 mod tests {
-    use super::{Project, Config};
+    use super::{Config, Project};
     use crate::{project::PanelConfig, StartArgs};
 
     #[test]
@@ -184,15 +182,13 @@ mod tests {
     }
 
     #[test]
-    fn it_parses_windows_commands_nil_null_and_empty() {
+    fn it_parses_empty_window_command() {
         let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
 
             name: PathOfBuilding
             root: /home/somebody/development/personal/PathOfBuilding
 
             windows:
-            - sandbox: nil
-            - service: null
             - another:
             "###;
 
@@ -211,6 +207,41 @@ mod tests {
             match &window.panels {
                 PanelConfig::SinglePanel(config) => {
                     assert!(config.command.is_none(), "should be an empty command")
+                }
+            }
+        }
+    }
+
+    // This is a breaking change from tmuxinator where these are treated as empty commands, due to
+    // being values in ruby. These can be valid commands, nix LSP has a binary called 'nil'.
+    // FIXME(tatu): Whole parsing fails with two commands
+    #[test]
+    fn it_parses_window_commands_nil_and_null_as_commands() {
+        let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
+
+            name: PathOfBuilding
+            root: /home/somebody/development/personal/PathOfBuilding
+
+            windows:
+            - another: nil
+            "###;
+
+        let layout_options = StartArgs {
+            name: "PathOfBuilding".to_string(),
+            no_attach: false,
+        };
+
+        let project = Project::load_str(&layout_options, yaml);
+
+        assert!(project.is_ok(), "should be able to load project layout");
+
+        let project = project.unwrap();
+
+        for window in &project.windows {
+            match &window.panels {
+                PanelConfig::SinglePanel(config) => {
+                    dbg!(config);
+                    assert!(config.command.is_some(), "should not be an empty command")
                 }
             }
         }
