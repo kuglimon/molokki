@@ -13,7 +13,8 @@ Molokki is a Finnish word for a garbage can that extends underground.
 ```sh
 .
 ├── aoc2023             # advent of code 2023 puzzles
-├── pipemixer           # Terminal based pipewire mixer
-├── fallout-save-editor # For editing Fallout 2 save files
+├── pipemixer           # terminal based pipewire mixer
+├── fallout-save-editor # for editing Fallout 2 save files
+├── poe-trade-overlay   # trade overlay helper for poe
 └── rojekti             # tmux session manager
 ```

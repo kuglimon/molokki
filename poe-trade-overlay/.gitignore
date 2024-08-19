@@ -1,0 +1,4 @@
+/target
+
+# link to build in nix store
+result
