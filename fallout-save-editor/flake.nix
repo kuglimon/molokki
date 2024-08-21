@@ -13,7 +13,7 @@
   {
     packages.${system}.default = pkgs.rustPlatform.buildRustPackage {
       pname = "fallout-save-editor";
-      version = "0.1.0";
+      version = "0.1.1";
       cargoLock.lockFile = ./Cargo.lock;
       src = pkgs.lib.cleanSource ./.;
     };
@@ -25,18 +25,6 @@
         # Scripts under hacks use python
         (python3.withPackages (p: [ p.requests ]))
       ];
-
-      # Based on: https://github.com/rust-windowing/winit/issues/3603#issuecomment-2016581170
-      LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:${ with pkgs; lib.makeLibraryPath [
-          xorg.libxcb
-          xorg.libX11
-          xorg.libXi
-          xorg.libXcursor
-          libxkbcommon
-
-          # slint needs for fonts to work
-          fontconfig
-      ] }";
     };
   };
 }

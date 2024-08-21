@@ -8,19 +8,6 @@ use flate2::{write::GzEncoder, Compression};
 
 use crate::parser::{map_save, try_gunzip_buffer, Script};
 
-slint::slint! {
-    export component HelloWorld {
-        Text {
-            text: "hello world";
-            color: green;
-        }
-    }
-}
-
-pub fn run_ui() {
-    HelloWorld::new().unwrap().run().unwrap();
-}
-
 #[derive(Subcommand)]
 enum Commands {
     /// Sets all NCR cops to friendly, fuck you sulik!
