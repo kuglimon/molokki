@@ -39,7 +39,7 @@ pub enum ProjectState {
 }
 
 impl ProjectState {
-    pub fn load(config: &config::Config, options: &StartArgs, project_name: &str) -> Result<Self> {
+    pub fn load(config: &config::RuntimeEnvironment, options: &StartArgs, project_name: &str) -> Result<Self> {
         let project_file = config.layout_path.join(project_name).with_extension("yml");
 
         if project_file.is_file() {

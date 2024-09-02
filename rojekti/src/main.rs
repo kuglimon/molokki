@@ -50,14 +50,14 @@ pub struct StartArgs {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let config = config::Config::from_env();
+    let runtime_config = config::RuntimeEnvironment::from_env();
 
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Commands::List(args) => command::list::run(config, args.newline),
-        Commands::Edit(args) => command::edit::run(config, &args.name),
-        Commands::Debug(args) => command::debug::run(config, args, &args.name),
-        Commands::Start(args) => command::start::run(config, args, &args.name),
+        Commands::List(args) => command::list::run(runtime_config, args.newline),
+        Commands::Edit(args) => command::edit::run(runtime_config, &args.name),
+        Commands::Debug(args) => command::debug::run(runtime_config, args, &args.name),
+        Commands::Start(args) => command::start::run(runtime_config, args, &args.name),
     }
 }

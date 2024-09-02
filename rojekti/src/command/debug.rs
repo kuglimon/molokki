@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 
-use crate::{config::Config, error::Result, project::ProjectState, StartArgs};
+use crate::{config::RuntimeEnvironment, error::Result, project::ProjectState, StartArgs};
 
-pub fn run(config: Config, args: &StartArgs, project_name: &str) -> Result<()> {
+pub fn run(config: RuntimeEnvironment, args: &StartArgs, project_name: &str) -> Result<()> {
     let state = ProjectState::load(&config, args, project_name)?;
 
     match state {

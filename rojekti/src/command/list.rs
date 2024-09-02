@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::DirEntry;
 use std::io::{self, Write};
 
-use crate::config::Config;
+use crate::config::RuntimeEnvironment;
 use crate::error::Result;
 
 // TODO: Does this really have to be this verbose?
@@ -17,7 +17,7 @@ fn path_to_filename(path: DirEntry) -> Result<String> {
         .to_string())
 }
 
-pub fn run(config: Config, split_by_newline: bool) -> Result<()> {
+pub fn run(config: RuntimeEnvironment, split_by_newline: bool) -> Result<()> {
     let mut paths = fs::read_dir(&config.layout_path)?;
 
     let separator = if split_by_newline { "\n" } else { " " };

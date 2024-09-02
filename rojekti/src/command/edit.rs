@@ -2,11 +2,11 @@ use std::fs::File;
 use std::io::Write;
 use std::process::Command;
 
-use crate::config::Config;
+use crate::config::RuntimeEnvironment;
 use crate::error::Result;
 use crate::project::render_default_template;
 
-pub fn run(config: Config, project_name: &str) -> Result<()> {
+pub fn run(config: RuntimeEnvironment, project_name: &str) -> Result<()> {
     let project_file = config.layout_path.join(project_name).with_extension("yml");
 
     if !project_file.is_file() {

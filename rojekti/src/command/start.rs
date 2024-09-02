@@ -4,9 +4,9 @@ use std::{env, os::unix::process::CommandExt, process::Command};
 
 use crate::error::Result;
 use crate::project::{render_default_template, ProjectState};
-use crate::{config::Config, StartArgs};
+use crate::{config::RuntimeEnvironment, StartArgs};
 
-pub fn run(config: Config, args: &StartArgs, project_name: &str) -> Result<()> {
+pub fn run(config: RuntimeEnvironment, args: &StartArgs, project_name: &str) -> Result<()> {
     let state = ProjectState::load(&config, args, project_name)?;
 
     match state {
