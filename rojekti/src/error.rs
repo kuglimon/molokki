@@ -19,6 +19,9 @@ pub enum ErrorKind {
     /// Templating related errors
     TemplateError(tera::Error),
 
+    /// Users runtime environment is some how busted. No PWD or HOME found for example.
+    RuntimeError(String),
+
     /// Mostly unknown errors, which should be refactored to more concrete types
     Other(String),
 }
