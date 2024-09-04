@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::{collections::BTreeMap, fs};
 use tera::{Context, Tera};
+use yaml_rust2::{Yaml, YamlLoader};
 
 use crate::error::Result;
 use crate::{config, StartArgs};
@@ -39,7 +40,11 @@ pub enum ProjectState {
 }
 
 impl ProjectState {
-    pub fn load(config: &config::RuntimeEnvironment, options: &StartArgs, project_name: &str) -> Result<Self> {
+    pub fn load(
+        config: &config::RuntimeEnvironment,
+        options: &StartArgs,
+        project_name: &str,
+    ) -> Result<Self> {
         let project_file = config.layout_path.join(project_name).with_extension("yml");
 
         if project_file.is_file() {
@@ -56,7 +61,7 @@ impl ProjectState {
 pub struct NewProject {}
 
 // TODO(tatu): Add default values
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq)]
 pub struct Config {
     name: String,
     root: Option<String>,
@@ -71,11 +76,7 @@ pub struct Config {
     tmux_command: Option<String>,
     startup_window: Option<String>,
     startup_pane: Option<u64>,
-
-    #[serde(default)]
     attach: bool,
-
-    #[serde(default)]
     enable_pane_titles: bool,
     pane_title_position: Option<String>,
     pane_title_format: Option<String>,
@@ -108,9 +109,61 @@ pub struct Panel {
     command: Option<String>,
 }
 
+fn try_as_string(doc: &Yaml, key: &str) -> Option<String> {
+    if doc[key].is_badvalue() {
+        None
+    } else {
+        Some(doc[key].as_str().unwrap().to_string())
+    }
+}
+
+fn try_as_u64(doc: &Yaml, key: &str) -> Option<u64> {
+    if doc[key].is_badvalue() {
+        None
+    } else {
+        Some(u64::try_from(doc[key].as_i64().unwrap()).unwrap())
+    }
+}
+
+fn try_as_bool(doc: &Yaml, key: &str, default: bool) -> bool {
+    if doc[key].is_badvalue() {
+        default
+    } else {
+        doc[key].as_bool().unwrap()
+    }
+}
+
+fn read_yaml(content: &str) -> Config {
+    let docs = YamlLoader::load_from_str(content).unwrap();
+
+    // FIXME(tatu): verify we only have one document
+    let doc = &docs[0];
+
+    Config {
+        name: try_as_string(&doc, "name").expect("project should always have a name"),
+        root: try_as_string(&doc, "root"),
+        socket_name: try_as_string(&doc, "socket_name"),
+        on_project_start: try_as_string(&doc, "on_project_start"),
+        on_project_first_start: try_as_string(&doc, "on_project_first_start"),
+        on_project_restart: try_as_string(&doc, "on_project_restart"),
+        on_project_exit: try_as_string(&doc, "on_project_exit"),
+        on_project_stop: try_as_string(&doc, "on_project_stop"),
+        pre_window: try_as_string(&doc, "pre_window"),
+        tmux_options: try_as_string(&doc, "tmux_options"),
+        tmux_command: try_as_string(&doc, "tmux_command"),
+        startup_window: try_as_string(&doc, "startup_window"),
+        startup_pane: try_as_u64(&doc, "startup_pane"),
+        attach: try_as_bool(&doc, "attach", true),
+        enable_pane_titles: try_as_bool(&doc, "enable_pane_titles", false),
+        pane_title_position: try_as_string(&doc, "pane_title_position"),
+        pane_title_format: try_as_string(&doc, "pane_title_format"),
+        windows: Vec::new(),
+    }
+}
+
 impl Project {
     fn load_str(options: &StartArgs, contents: &str) -> Result<Self> {
-        let config: Config = serde_yaml::from_str(contents).unwrap();
+        let config: Config = read_yaml(contents);
 
         let windows = config
             .windows
@@ -123,6 +176,8 @@ impl Project {
                     .as_ref()
                     .unwrap_or(&"".to_string())
                     .to_string();
+
+                dbg!(&raw_command);
 
                 let command = match raw_command.as_str() {
                     c if c.is_empty() => None,
@@ -155,7 +210,10 @@ impl Project {
 #[cfg(test)]
 mod tests {
     use super::{Config, Project};
-    use crate::{project::PanelConfig, StartArgs};
+    use crate::{
+        project::{read_yaml, PanelConfig},
+        StartArgs,
+    };
 
     #[test]
     fn it_parses_simple_layouts() {
@@ -214,9 +272,8 @@ mod tests {
 
     // This is a breaking change from tmuxinator where these are treated as empty commands, due to
     // being values in ruby. These can be valid commands, nix LSP has a binary called 'nil'.
-    // FIXME(tatu): Whole parsing fails with two commands
     #[test]
-    fn it_parses_window_commands_nil_and_null_as_commands() {
+    fn it_parses_window_commands_nil_and_null_as_programs() {
         let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
 
             name: PathOfBuilding
@@ -224,6 +281,7 @@ mod tests {
 
             windows:
             - another: nil
+            - another: null
             "###;
 
         let layout_options = StartArgs {
@@ -319,11 +377,7 @@ mod tests {
             - logs: tail -f log/development.log
             "###;
 
-        let config: Result<Config, _> = serde_yaml::from_str(yaml);
-
-        assert!(config.is_ok(), "should be able to parse config yaml");
-
-        let config = config.unwrap();
+        let config: Config = read_yaml(yaml);
 
         assert!(config.name == "sample");
         assert!(config.root == Some("~/".to_string()));
@@ -341,6 +395,6 @@ mod tests {
         assert!(!config.attach);
         assert!(config.enable_pane_titles);
         assert!(config.pane_title_position == Some("bottom".to_string()));
-        assert!(config.pane_title_format == Some(" [ #T ] ".to_string()));
+        assert_eq!(config.pane_title_format, Some(" [ #T ] ".to_string()));
     }
 }
