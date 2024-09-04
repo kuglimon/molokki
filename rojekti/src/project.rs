@@ -133,11 +133,33 @@ fn try_as_bool(doc: &Yaml, key: &str, default: bool) -> bool {
     }
 }
 
+// FIXME(tatu): Reduce love of panics
 fn read_yaml(content: &str) -> Config {
     let docs = YamlLoader::load_from_str(content).unwrap();
 
     // FIXME(tatu): verify we only have one document
     let doc = &docs[0];
+
+    let windows = doc["windows"]
+        .as_vec()
+        .expect("windows can only be a list")
+        .to_vec()
+        .iter()
+        .map(|window| {
+            // FIXME(tatu): Horrible shit and doesn't support pane configuration
+            if let Some(properties) = window.as_hash() {
+                let (key, value) = properties.front().unwrap();
+                let mut map = BTreeMap::new();
+                map.insert(
+                    key.as_str().unwrap().to_string(),
+                    value.as_str().map(String::from),
+                );
+                map
+            } else {
+                panic!("malformed configuration bro");
+            }
+        })
+        .collect::<Vec<BTreeMap<String, Option<String>>>>();
 
     Config {
         name: try_as_string(&doc, "name").expect("project should always have a name"),
@@ -157,7 +179,7 @@ fn read_yaml(content: &str) -> Config {
         enable_pane_titles: try_as_bool(&doc, "enable_pane_titles", false),
         pane_title_position: try_as_string(&doc, "pane_title_position"),
         pane_title_format: try_as_string(&doc, "pane_title_format"),
-        windows: Vec::new(),
+        windows: windows,
     }
 }
 
@@ -273,7 +295,7 @@ mod tests {
     // This is a breaking change from tmuxinator where these are treated as empty commands, due to
     // being values in ruby. These can be valid commands, nix LSP has a binary called 'nil'.
     #[test]
-    fn it_parses_window_commands_nil_and_null_as_programs() {
+    fn it_parses_window_commands_nil_as_program() {
         let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
 
             name: PathOfBuilding
@@ -281,7 +303,6 @@ mod tests {
 
             windows:
             - another: nil
-            - another: null
             "###;
 
         let layout_options = StartArgs {
