@@ -34,14 +34,6 @@ cargo build --release
 
 ## Installing
 
-There's hacky packaging for Arch Linux:
-
-### Arch Linux
-
-```bash
-cd pkg && makepkg -si
-```
-
 ### macOS
 
 ```bash
