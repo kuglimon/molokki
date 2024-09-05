@@ -60,6 +60,17 @@ impl ProjectState {
 
 pub struct NewProject {}
 
+#[derive(Debug, PartialEq)]
+pub enum PanelLayout {
+    SinglePanel { panel: Panel },
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Window2 {
+    name: String,
+    panels: PanelLayout,
+}
+
 // TODO(tatu): Add default values
 #[derive(Debug, PartialEq)]
 pub struct Config {
@@ -80,7 +91,7 @@ pub struct Config {
     enable_pane_titles: bool,
     pane_title_position: Option<String>,
     pane_title_format: Option<String>,
-    windows: Vec<BTreeMap<String, Option<String>>>,
+    windows: Vec<Window2>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -92,7 +103,6 @@ pub struct Project {
     is_new_tmux_session: bool,
 }
 
-// SinglePanel(Panel),
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum PanelConfig {
     SinglePanel(Panel),
@@ -149,17 +159,20 @@ fn read_yaml(content: &str) -> Config {
             // FIXME(tatu): Horrible shit and doesn't support pane configuration
             if let Some(properties) = window.as_hash() {
                 let (key, value) = properties.front().unwrap();
-                let mut map = BTreeMap::new();
-                map.insert(
-                    key.as_str().unwrap().to_string(),
-                    value.as_str().map(String::from),
-                );
-                map
+                let panels = PanelLayout::SinglePanel {
+                    panel: Panel {
+                        command: value.as_str().map(String::from),
+                    },
+                };
+                Window2 {
+                    name: key.as_str().unwrap().to_string(),
+                    panels,
+                }
             } else {
                 panic!("malformed configuration bro");
             }
         })
-        .collect::<Vec<BTreeMap<String, Option<String>>>>();
+        .collect::<Vec<Window2>>();
 
     Config {
         name: try_as_string(&doc, "name").expect("project should always have a name"),
@@ -190,26 +203,15 @@ impl Project {
         let windows = config
             .windows
             .iter()
-            .map(|window_config| {
-                let raw_command = window_config
-                    .first_key_value()
-                    .unwrap()
-                    .1
-                    .as_ref()
-                    .unwrap_or(&"".to_string())
-                    .to_string();
-
-                dbg!(&raw_command);
-
-                let command = match raw_command.as_str() {
-                    c if c.is_empty() => None,
-                    c => Some(c.to_string()),
+            .map(|window| {
+                let panels = match &window.panels {
+                    PanelLayout::SinglePanel { panel } => PanelConfig::SinglePanel(Panel {
+                        command: panel.command.clone(),
+                    }),
                 };
 
-                let panels = PanelConfig::SinglePanel(Panel { command });
-
                 Window {
-                    name: window_config.first_key_value().unwrap().0.to_string(),
+                    name: window.name.clone(),
                     panels,
                 }
             })
