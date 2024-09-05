@@ -179,7 +179,7 @@ fn read_yaml(content: &str) -> Config {
         enable_pane_titles: try_as_bool(&doc, "enable_pane_titles", false),
         pane_title_position: try_as_string(&doc, "pane_title_position"),
         pane_title_format: try_as_string(&doc, "pane_title_format"),
-        windows: windows,
+        windows,
     }
 }
 
