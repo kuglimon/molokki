@@ -5,6 +5,7 @@ use tera::{Context, Tera};
 use yaml_rust2::{Yaml, YamlLoader};
 
 use crate::error::Result;
+use crate::tmux::TmuxSessionState;
 use crate::{config, StartArgs};
 
 fn render_tmux_template(config: &Project) -> Result<String> {
@@ -102,7 +103,7 @@ pub struct Config {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Project {
     config: Config,
-    is_new_tmux_session: bool,
+    tmux_session_state: TmuxSessionState,
 }
 
 fn try_as_string(doc: &Yaml, key: &str) -> Option<String> {
@@ -188,7 +189,9 @@ impl Project {
 
         Ok(Project {
             config,
-            is_new_tmux_session: false,
+            tmux_session_state: TmuxSessionState {
+                is_new_session: false,
+            },
         })
     }
 

@@ -5,6 +5,7 @@ mod command;
 mod config;
 mod error;
 mod project;
+mod tmux;
 
 /// Rojekti - Tmuxinator but rust
 #[derive(Parser)]
