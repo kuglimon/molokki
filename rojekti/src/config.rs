@@ -43,6 +43,7 @@ impl RuntimeEnvironment {
     }
 }
 
+// FIXME(tatu): Tests are not deterministic. If run on certain order they will fail.
 #[cfg(test)]
 mod tests {
     use once_cell::sync::Lazy; // 1.4.0

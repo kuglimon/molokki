@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::path::PathBuf;
-use std::{collections::BTreeMap, fs};
 use tera::{Context, Tera};
 use yaml_rust2::{Yaml, YamlLoader};
 
@@ -60,19 +60,24 @@ impl ProjectState {
 
 pub struct NewProject {}
 
-#[derive(Debug, PartialEq)]
-pub enum PanelLayout {
-    SinglePanel { panel: Panel },
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Window2 {
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Window {
     name: String,
     panels: PanelLayout,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub enum PanelLayout {
+    SinglePanel { panel: Panel },
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Panel {
+    command: Option<String>,
+}
+
 // TODO(tatu): Add default values
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     name: String,
     root: Option<String>,
@@ -91,32 +96,13 @@ pub struct Config {
     enable_pane_titles: bool,
     pane_title_position: Option<String>,
     pane_title_format: Option<String>,
-    windows: Vec<Window2>,
+    windows: Vec<Window>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Project {
-    root: String,
-    name: String,
-    attach: bool,
-    windows: Vec<Window>,
+    config: Config,
     is_new_tmux_session: bool,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub enum PanelConfig {
-    SinglePanel(Panel),
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Window {
-    name: String,
-    panels: PanelConfig,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Panel {
-    command: Option<String>,
 }
 
 fn try_as_string(doc: &Yaml, key: &str) -> Option<String> {
@@ -164,7 +150,7 @@ fn read_yaml(content: &str) -> Config {
                         command: value.as_str().map(String::from),
                     },
                 };
-                Window2 {
+                Window {
                     name: key.as_str().unwrap().to_string(),
                     panels,
                 }
@@ -172,7 +158,7 @@ fn read_yaml(content: &str) -> Config {
                 panic!("malformed configuration bro");
             }
         })
-        .collect::<Vec<Window2>>();
+        .collect::<Vec<Window>>();
 
     Config {
         name: try_as_string(&doc, "name").expect("project should always have a name"),
@@ -197,32 +183,12 @@ fn read_yaml(content: &str) -> Config {
 }
 
 impl Project {
-    fn load_str(options: &StartArgs, contents: &str) -> Result<Self> {
+    fn load_str(_: &StartArgs, contents: &str) -> Result<Self> {
         let config: Config = read_yaml(contents);
 
-        let windows = config
-            .windows
-            .iter()
-            .map(|window| {
-                let panels = match &window.panels {
-                    PanelLayout::SinglePanel { panel } => PanelConfig::SinglePanel(Panel {
-                        command: panel.command.clone(),
-                    }),
-                };
-
-                Window {
-                    name: window.name.clone(),
-                    panels,
-                }
-            })
-            .collect();
-
         Ok(Project {
+            config,
             is_new_tmux_session: false,
-            attach: !options.no_attach,
-            windows,
-            name: config.name,
-            root: config.root.unwrap_or(".".to_string()),
         })
     }
 
@@ -235,7 +201,7 @@ impl Project {
 mod tests {
     use super::{Config, Project};
     use crate::{
-        project::{read_yaml, PanelConfig},
+        project::{read_yaml, PanelLayout},
         StartArgs,
     };
 
@@ -285,10 +251,10 @@ mod tests {
 
         let project = project.unwrap();
 
-        for window in &project.windows {
+        for window in &project.config.windows {
             match &window.panels {
-                PanelConfig::SinglePanel(config) => {
-                    assert!(config.command.is_none(), "should be an empty command")
+                PanelLayout::SinglePanel { panel } => {
+                    assert!(panel.command.is_none(), "should be an empty command")
                 }
             }
         }
@@ -318,11 +284,11 @@ mod tests {
 
         let project = project.unwrap();
 
-        for window in &project.windows {
+        for window in &project.config.windows {
             match &window.panels {
-                PanelConfig::SinglePanel(config) => {
-                    dbg!(config);
-                    assert!(config.command.is_some(), "should not be an empty command")
+                PanelLayout::SinglePanel { panel } => {
+                    dbg!(panel);
+                    assert!(panel.command.is_some(), "should not be an empty command")
                 }
             }
         }
