@@ -28,6 +28,9 @@ else
   {% else %}
   tmux new-window -c {{ config.root }} -t {{ config.name }}:{{ loop.index }} -n {{ window.name }}
   {% endif %}
+  {% if config.pre_window %}
+  tmux send-keys -t {{ config.name }}:{{ loop.index }} '{{ config.pre_window }}' C-m
+  {% endif %}
   {% if window.panels.SinglePanel.panel.command %}
   tmux send-keys -t {{ config.name }}:{{ loop.index }} '{{ window.panels.SinglePanel.panel.command }}' C-m
   {% endif %}
