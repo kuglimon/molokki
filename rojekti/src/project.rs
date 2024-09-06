@@ -213,7 +213,7 @@ impl Project {
 mod tests {
     use super::{Config, Project};
     use crate::{
-        project::{read_yaml, PanelLayout},
+        project::{read_yaml, Panel, PanelLayout},
         StartArgs,
     };
     use indoc::indoc;
@@ -240,7 +240,41 @@ mod tests {
 
         let project = Project::load_str(&layout_options, yaml);
 
-        assert!(project.is_ok(), "should be able to load project layout")
+        assert!(project.is_ok(), "should be able to load project layout");
+
+        let windows = project.unwrap().config.windows;
+
+        assert_eq!(
+            windows[0].panels,
+            PanelLayout::SinglePanel {
+                panel: Panel {
+                    command: Some("vim -u NONE".to_string())
+                }
+            }
+        );
+
+        assert_eq!(
+            windows[1].panels,
+            PanelLayout::SinglePanel {
+                panel: Panel {
+                    command: Some("docker compose up --build".to_string())
+                }
+            }
+        );
+
+        assert_eq!(
+            windows[2].panels,
+            PanelLayout::SinglePanel {
+                panel: Panel { command: None }
+            }
+        );
+
+        assert_eq!(
+            windows[3].panels,
+            PanelLayout::SinglePanel {
+                panel: Panel { command: None }
+            }
+        );
     }
 
     #[test]
