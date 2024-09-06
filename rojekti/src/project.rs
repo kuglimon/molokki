@@ -1,7 +1,7 @@
+use minijinja::{context, Environment};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tera::{Context, Tera};
 use yaml_rust2::{Yaml, YamlLoader};
 
 use crate::error::Result;
@@ -10,9 +10,16 @@ use crate::{config, StartArgs};
 
 fn render_tmux_template(config: &Project) -> Result<String> {
     // TOOD(tatu): Add proper error handling
-    let mut tera = Tera::default();
-    tera.add_raw_template("tmux.sh", include_str!("templates/tmux.sh"))?;
-    Ok(tera.render("tmux.sh", &Context::from_serialize(config)?)?)
+    let mut env = Environment::new();
+    env.set_trim_blocks(true);
+    env.set_lstrip_blocks(true);
+    env.add_template("tmux.sh.jinja", include_str!("templates/tmux.sh.jinja"))
+        .unwrap();
+    let template = env.get_template("tmux.sh.jinja").unwrap();
+
+    Ok(template.render(config).unwrap())
+    // tera.add_raw_template("tmux.sh.tera")?;
+    // Ok(tera.render("tmux.sh.tera", &Context::from_serialize(config)?)?)
 }
 
 pub fn render_default_template(
@@ -20,19 +27,21 @@ pub fn render_default_template(
     project_name: &str,
     pwd: &PathBuf,
 ) -> Result<String> {
-    let mut tera = Tera::default();
-    tera.add_raw_template(
+    let mut env = Environment::new();
+    env.add_template(
         "sample_config.yml",
         include_str!("templates/sample_config.yml"),
-    )?;
+    )
+    .unwrap();
+    let template = env.get_template("sample_config.yaml").unwrap();
 
-    let mut context = Context::new();
-    // FIXME: don't unwrap
-    context.insert("path", project_file.to_str().unwrap());
-    context.insert("name", project_name);
-    context.insert("pwd", pwd);
+    let context = context! {
+        path => project_file.to_str().unwrap(),
+        name => project_name,
+        pwd => pwd,
+    };
 
-    Ok(tera.render("sample_config.yml", &context)?)
+    Ok(template.render(context).unwrap())
 }
 
 pub enum ProjectState {
@@ -207,6 +216,8 @@ mod tests {
         project::{read_yaml, PanelLayout},
         StartArgs,
     };
+    use indoc::indoc;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn it_parses_simple_layouts() {
@@ -388,5 +399,72 @@ mod tests {
         assert!(config.enable_pane_titles);
         assert!(config.pane_title_position == Some("bottom".to_string()));
         assert_eq!(config.pane_title_format, Some(" [ #T ] ".to_string()));
+    }
+
+    #[test]
+    fn it_renders_tmux_script() {
+        let yaml = r###"# /home/somebody/.config/tmuxinator/base.yml
+
+            name: PathOfBuilding
+            root: /home/somebody/development/personal/PathOfBuilding
+
+            windows:
+            - editor: vim -u NONE
+            - backend: "docker compose up --build"
+            - sandbox: null
+            - service: null
+            "###;
+
+        let expected = indoc! {r###"#!/usr/bin/env bash
+
+            set -o errexit   # abort on nonzero exitstatus
+            set -o pipefail  # don't hide errors within pipeset -e
+
+            if [ -n "$DEBUG" ]; then
+              set -x
+            fi
+
+            tmux start-server
+
+            cd /home/somebody/development/personal/PathOfBuilding
+
+            # Run project on start hooks
+            # TODO(tatu): I've yet to use this
+
+            if tmux has-session -t "PathOfBuilding" &>/dev/null; then
+              # TODO(tatu): Implement 'on_project_restart'. This commands runs in the caller
+              # shell before attaching to tmux on each attach after the first.
+              echo "Project restart hooks not implemented!"
+            else
+              # XXX(tatu): Why does indentation get fucked here by extra level
+              # Reset TMUX so we don't send session commands to some other session
+              TMUX= tmux new-session -d -s PathOfBuilding -n editor
+              tmux send-keys -t PathOfBuilding:1 cd\ /home/somebody/development/personal/PathOfBuilding C-m
+              tmux new-window -c /home/somebody/development/personal/PathOfBuilding -t PathOfBuilding:2 -n backend
+              tmux new-window -c /home/somebody/development/personal/PathOfBuilding -t PathOfBuilding:3 -n sandbox
+              tmux new-window -c /home/somebody/development/personal/PathOfBuilding -t PathOfBuilding:4 -n service
+            fi
+
+            if [ -z "$TMUX" ]; then
+              tmux -u attach-session -t PathOfBuilding
+            else
+              tmux -u switch-client -t PathOfBuilding
+            fi
+            "###
+        };
+
+        let layout_options = StartArgs {
+            name: "PathOfBuilding".to_string(),
+            no_attach: false,
+        };
+
+        let project = Project::load_str(&layout_options, yaml)
+            .expect("should have loaded simple project for rendering");
+
+        let output = project
+            .render()
+            .expect("should render simple layout without errors");
+
+        assert_eq!(output, expected);
     }
 }

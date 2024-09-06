@@ -17,7 +17,7 @@ pub enum ErrorKind {
     Io(io::Error),
 
     /// Templating related errors
-    TemplateError(tera::Error),
+    TemplateError(),
 
     /// Users runtime environment is some how busted. No PWD or HOME found for example.
     RuntimeError(String),
@@ -29,12 +29,6 @@ pub enum ErrorKind {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
         Error::new(ErrorKind::Io(err))
-    }
-}
-
-impl From<tera::Error> for Error {
-    fn from(err: tera::Error) -> Error {
-        Error::new(ErrorKind::TemplateError(err))
     }
 }
 
