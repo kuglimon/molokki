@@ -2,6 +2,23 @@
 
 Tmuxinator inspired tmux layout manager.
 
+Code is worth a thousand pictures:
+
+```yaml
+name: rojekti
+root: ~/development/personal/molokki/rojekti
+
+pre_window: nix develop -c zsh
+
+windows:
+  - editor: vim
+  - sandbox: null
+  - release: null
+```
+
+This gives me three panes in nix development shell with all my dependencies and
+an editor to get started on coding rojekti.
+
 ## Differences with Tmuxinator
 
 * ships with one binary with everything statically linked
@@ -33,6 +50,18 @@ cargo build --release
 ```
 
 ## Installing
+
+Include as flake:
+
+```nix
+rojekti = {
+  url = "github:UncertainSchrodinger/molokki?dir=rojekti";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+
+# And then in some host configuration
+packages = with pkgs; [ rojekti ]
+```
 
 ### macOS
 
