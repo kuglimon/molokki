@@ -474,7 +474,9 @@ mod tests {
               # Reset TMUX so we don't send session commands to some other session
               TMUX= tmux new-session -d -s PathOfBuilding -n editor
               tmux send-keys -t PathOfBuilding:1 cd\ /home/somebody/development/personal/PathOfBuilding C-m
+              tmux send-keys -t PathOfBuilding:1 'vim -u NONE' C-m
               tmux new-window -c /home/somebody/development/personal/PathOfBuilding -t PathOfBuilding:2 -n backend
+              tmux send-keys -t PathOfBuilding:2 'docker compose up --build' C-m
               tmux new-window -c /home/somebody/development/personal/PathOfBuilding -t PathOfBuilding:3 -n sandbox
               tmux new-window -c /home/somebody/development/personal/PathOfBuilding -t PathOfBuilding:4 -n service
             fi
