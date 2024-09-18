@@ -6,7 +6,7 @@ jobs:
   builds:
     strategy:
       matrix:
-        project: [pipemixer, fallout-save-editor]
+        project: [rojekti, poe-trade-overlay, pipemixer, fallout-save-editor]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
