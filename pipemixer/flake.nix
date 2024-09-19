@@ -27,6 +27,10 @@
       src = pkgs.lib.cleanSource ./.;
 
       LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+
+      checkPhase = ''
+        cargo test
+      '';
     };
 
     devShells.${system}.default = (pkgs.mkShell.override {stdenv = pkgs.llvmPackages.stdenv;}) {
