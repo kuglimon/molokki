@@ -16,6 +16,10 @@
       version = "0.1.1";
       cargoLock.lockFile = ./Cargo.lock;
       src = pkgs.lib.cleanSource ./.;
+
+      checkPhase = ''
+        cargo test
+      '';
     };
 
     devShells.${system}.default = pkgs.mkShell {
