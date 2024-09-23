@@ -144,7 +144,7 @@ fn read_yaml(content: &str) -> Config {
     let docs = YamlLoader::load_from_str(content).unwrap();
 
     // FIXME(tatu): verify we only have one document
-    let doc = &docs[0];
+    let doc = &docs.get(0).expect("configuration is empty");
 
     let windows = doc["windows"]
         .as_vec()
