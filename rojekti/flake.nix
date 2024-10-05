@@ -18,11 +18,14 @@
       version = cargoToml.package.version;
       buildInputs = with pkgs; [
         pipewire.dev
+        # Tests require nvim.
+        neovim
       ];
       nativeBuildInputs = with pkgs; [
         pkg-config
         rustPlatform.bindgenHook
       ];
+
       cargoLock.lockFile = ./Cargo.lock;
       src = pkgs.lib.cleanSource ./.;
 
@@ -35,7 +38,13 @@
 
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = with pkgs; [
-        cargo
+        # Lord fucking mighty I love nix. Instead of fucking up users local
+        # neovim with some random ass version required for tests, we can just
+        # pass a special version to the command that needs it!
+        (cargo.overrideAttrs (oldAttrs: {
+          buildInputs = oldAttrs.buildInputs ++ [ neovim ];
+        }))
+
         alejandra
 
         # tmuxinator for testing feature parity
