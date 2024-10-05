@@ -114,4 +114,20 @@ impl Workdir {
             );
         }
     }
+
+    pub fn support_script_dir(&self) -> String {
+        let path = std::env::current_dir().expect("no CWD found");
+        path.join("tests")
+            .join("support")
+            .into_os_string()
+            .into_string()
+            .unwrap()
+    }
+
+    pub fn support_script_path(&self, name: &str) -> PathBuf {
+        let path = std::env::current_dir().expect("no CWD found");
+        let path = path.join("tests").join("support").join(name);
+        dbg!(&path);
+        path
+    }
 }

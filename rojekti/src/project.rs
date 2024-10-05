@@ -33,7 +33,7 @@ pub fn render_default_template(
         include_str!("templates/sample_config.yml"),
     )
     .unwrap();
-    let template = env.get_template("sample_config.yaml").unwrap();
+    let template = env.get_template("sample_config.yml").unwrap();
 
     let context = context! {
         path => project_file.to_str().unwrap(),
