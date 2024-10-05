@@ -17,7 +17,6 @@
       pname = cargoToml.package.name;
       version = cargoToml.package.version;
       buildInputs = with pkgs; [
-        pipewire.dev
         # Tests require nvim.
         neovim
       ];
