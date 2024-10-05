@@ -1,6 +1,15 @@
+use lazy_static::lazy_static;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs, path::PathBuf, process, sync::atomic};
 
 static NEXT_ID: atomic::AtomicUsize = atomic::AtomicUsize::new(0);
+
+lazy_static! {
+    static ref UNIXTIME: u64 = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+}
 
 /// Wrapper for testing our binary in integration tests.
 ///
@@ -37,7 +46,7 @@ impl Workdir {
         }
 
         let dir = root
-            .join("rojekti-it")
+            .join(format!("rojekti-it-{}", *UNIXTIME))
             .join(name)
             .join(format!("test-{}", id));
 
