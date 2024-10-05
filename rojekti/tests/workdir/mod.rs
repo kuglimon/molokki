@@ -1,6 +1,6 @@
 use std::{env, fs, path::PathBuf, process, sync::atomic};
 
-static NEXT_ID: atomic::AtomicUsize = atomic::ATOMIC_USIZE_INIT;
+static NEXT_ID: atomic::AtomicUsize = atomic::AtomicUsize::new(0);
 
 /// Wrapper for testing our binary in integration tests.
 ///
