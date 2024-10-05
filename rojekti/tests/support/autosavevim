@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 # Used in integration tests to avoid process hanging on vim. Saves the file and
 # exists.
-nvim -c ":wq" "$@"
+nvim -u NONE -c ":wq" "$@"
