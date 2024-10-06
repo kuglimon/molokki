@@ -34,6 +34,7 @@
       LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
 
       checkPhase = ''
+        patchShebangs tests/support/autosavevim
         cargo test
       '';
     };
