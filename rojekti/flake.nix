@@ -16,13 +16,16 @@
     packages.${system}.default = pkgs.rustPlatform.buildRustPackage {
       pname = cargoToml.package.name;
       version = cargoToml.package.version;
-      buildInputs = with pkgs; [
-        # Tests require nvim.
-        neovim
-      ];
       nativeBuildInputs = with pkgs; [
         pkg-config
         rustPlatform.bindgenHook
+
+        # Enable to debug failing builds
+        # breakpointHook
+      ];
+
+      nativeCheckInputs = with pkgs; [
+        neovim
       ];
 
       cargoLock.lockFile = ./Cargo.lock;
