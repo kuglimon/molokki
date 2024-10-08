@@ -14,5 +14,6 @@ fn starts_new_project_without_config() {
         .env("EDITOR", wk.support_script_path("autosavevim"))
         .arg("test-proj");
 
-    wk.assert_ok(&mut cmd)
+    wk.assert_ok(&mut cmd);
+    wk.assert_has_file("rojekti/test-proj.yml");
 }

@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs, path::PathBuf, process, sync::atomic};
 
@@ -129,5 +130,14 @@ impl Workdir {
         let path = path.join("tests").join("support").join(name);
         dbg!(&path);
         path
+    }
+
+    pub(crate) fn assert_has_file(&self, filename: &str) {
+        let path = &self.dir.join(filename);
+        assert!(
+            path.exists(),
+            "expected file {} to exist",
+            path.to_str().unwrap()
+        )
     }
 }
