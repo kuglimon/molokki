@@ -116,27 +116,20 @@ impl Workdir {
         }
     }
 
-    pub fn support_script_dir(&self) -> String {
-        let path = std::env::current_dir().expect("no CWD found");
-        path.join("tests")
-            .join("support")
-            .into_os_string()
-            .into_string()
-            .unwrap()
-    }
-
-    pub fn support_script_path(&self, name: &str) -> PathBuf {
-        let path = std::env::current_dir().expect("no CWD found");
-        let path = path.join("tests").join("support").join(name);
-        dbg!(&path);
-        path
-    }
-
     pub(crate) fn assert_has_file(&self, filename: &str) {
         let path = &self.dir.join(filename);
         assert!(
             path.exists(),
             "expected file {} to exist",
+            path.to_str().unwrap()
+        )
+    }
+
+    pub(crate) fn assert_no_file(&self, filename: &str) {
+        let path = &self.dir.join(filename);
+        assert!(
+            !path.exists(),
+            "expected file {} to not exist",
             path.to_str().unwrap()
         )
     }
