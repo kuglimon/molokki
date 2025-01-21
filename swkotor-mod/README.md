@@ -1,5 +1,7 @@
 # Star Wars - Knights of the Old Republic Mod
 
+__Project is mostly educational, expect nothing to work__
+
 Attempt at modding swkotor 1.
 
 Aims to be easier to use. Existing mods rely on patching executables, which
