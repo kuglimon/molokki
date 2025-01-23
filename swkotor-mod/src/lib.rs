@@ -1,4 +1,5 @@
 pub mod entry;
+pub mod util;
 
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::SystemServices::*;
