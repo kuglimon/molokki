@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# TODO(tatu): Nixify this crap
+#
+# Simple utility to make debugging apps under proton a bit easier for me.
 
 # Check if a command was provided
 if [ -z "$1" ]; then
@@ -8,7 +11,15 @@ fi
 # File to store the output
 OUTPUT_FILE="$HOME/.steam-debugger.log"
 
-echo "$@" > "$OUTPUT_FILE"
+echo "Starting debugging with command:" > "$OUTPUT_FILE"
+echo "$@" >> "$OUTPUT_FILE"
+
+# Show dll load attempts. Use this sparingly. Opening kotor for a couple of
+# seconds generated 500MB of logs.
+# export WINEDEBUG=+relay
+
+# Force steam to load our modified dll
+export WINEDLLOVERRIDES="dinput8.dll=n"
 
 # MANGOHUD_CONFIG=fps_limit=60 mangohud
 # Execute the command and capture its output
