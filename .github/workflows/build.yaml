@@ -14,7 +14,9 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
       - id: generatePackages
         run: |
-          echo "packages=$(nix build '.#build-matrix')" >> $GITHUB_OUTPUT
+          nix build '.#build-matrix'
+          cat result
+          echo "packages=$(cat result)" >> $GITHUB_OUTPUT
 
   builds:
     needs: setup
