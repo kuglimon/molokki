@@ -1,49 +1,37 @@
-pub mod entry;
-pub mod util;
-
+pub mod engine;
+pub mod system;
+use engine::SW_KOTOR_MOD_ENGINE;
+use log::trace;
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::SystemServices::*;
-use env_logger::{self, Env};
-use log::trace;
-
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
-fn setup_logging() {
-    // Dump all logs to a file. For that, we'll need a pipe to pass to env_logger.
-    let file = std::fs::File::create("swkotor-mod.log").expect("Failed to initialize logging file for piping.");
-    let mut builder = env_logger::Builder::from_env(Env::default().default_filter_or("trace"));
-    builder.target(env_logger::Target::Pipe(Box::new(file)));
-    builder.init();
-}
-
-fn attach() {
-    setup_logging();
-    trace!("Hello from the DLL!");
-}
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 extern "system" fn DllMain(dll_module: HINSTANCE, call_reason: u32, _: *mut ()) -> bool {
+    {
+        // Touch the engine to trigger initialize. This is safe to do multiple times. We'll want to
+        // do it before anything else to initialize logging. DllMain can be called with JUST
+        // deattach in error cases.
+        //
+        // TODO(tatu): Maybe we should still tell the engine if we're starting or already shutting
+        // down? Right now it'll load libraries in case of detach and might fail again.
+        let _unused = SW_KOTOR_MOD_ENGINE.lock().unwrap();
+    }
+
     match call_reason {
         DLL_PROCESS_ATTACH => {
-            attach();
-        },
-        DLL_PROCESS_DETACH => (),
-        _ => (),
-    }
+            trace!("Attaching dll");
+        }
+        DLL_PROCESS_DETACH => {
+            trace!("Detaching dll or dll loading failed early");
+        }
+        // We can ignore these safely
+        DLL_THREAD_ATTACH | DLL_THREAD_DETACH => (),
+        _ => {
+            trace!("Unknown dll call reason {call_reason:?}");
+            panic!("Unknown dll call reason {call_reason:?}");
+        }
+    };
 
     true
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }

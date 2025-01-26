@@ -106,10 +106,14 @@ let
 
       # Force steam to load our modified dll
       # FIXME(tatu): Can this be an absolute path?
-      export WINEDLLOVERRIDES="dinput8.dll=n"
+      # export WINEDLLOVERRIDES="dinput8.dll=n"
+
+      # Exposes debug tools like winedbg in /tmp
+      export PROTON_LOG=1
+      export STEAM_COMPAT_LAUNCHER_SERVICE=proton
 
       # Copy our built dll to the game install directory under steam.
-      cp "${swkotor-mod}/lib/swkotor_mod.dll" ~/.local/share/Steam/steamapps/common/swkotor/dinput8.dll
+      cp -rf "${swkotor-mod}/lib/swkotor_mod.dll" ~/.local/share/Steam/steamapps/common/swkotor/dinput8.dll
 
       echo "DLL copied, starting kotor"
 
