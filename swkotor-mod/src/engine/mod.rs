@@ -10,6 +10,7 @@ use log::trace;
 use windows::{core::HRESULT, Win32::Foundation::HINSTANCE};
 
 use crate::system::dll_loader::{get_proc_address, load_system_library_a, DllLibrary};
+use crate::liveqa;
 
 // Holds the global state of our mod engine.
 //
@@ -59,6 +60,8 @@ fn setup_logging() {
 pub static SW_KOTOR_MOD_ENGINE: LazyLock<Mutex<SWKotorModEngine>> = LazyLock::new(|| {
     // Is this safe to do here?
     setup_logging();
+
+    liveqa::runner::run_live_qa_tests();
 
     Mutex::new(SWKotorModEngine::new())
 });
