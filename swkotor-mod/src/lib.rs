@@ -1,5 +1,7 @@
 pub mod engine;
+pub mod liveqa;
 pub mod system;
+
 use engine::SW_KOTOR_MOD_ENGINE;
 use log::trace;
 use windows::Win32::Foundation::HINSTANCE;
