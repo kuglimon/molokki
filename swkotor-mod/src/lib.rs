@@ -1,6 +1,7 @@
 pub mod engine;
 pub mod liveqa;
 pub mod system;
+pub mod util;
 
 use engine::SW_KOTOR_MOD_ENGINE;
 use log::trace;
