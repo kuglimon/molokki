@@ -33,5 +33,20 @@ pub fn replace_hz_text() {
     } else {
         log::trace!("Needle not found");
     }
+}
 
+/// Tries to replace the resolution string in memory. Did not
+/// seem to work.
+#[allow(dead_code)]
+pub fn replace_resolution() {
+    unsafe {
+        let matches = util::needle_finder::find_all_matches_in_memory(b"1280x1024\0");
+        for needle in &matches {
+            let new_bytes = b"3440x1440";
+            log::trace!("Replacing at address {:?}", needle);
+            util::memory_patcher::patch_memory(needle.clone(), new_bytes);
+        }
+        log::trace!("Replaced {} instances", matches.len());
+
+    }
 }
