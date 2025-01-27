@@ -7,6 +7,9 @@ use engine::SW_KOTOR_MOD_ENGINE;
 use log::trace;
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::SystemServices::*;
+use crate::system::dll_loader::DllLibrary;
+
+pub const DLL_MOCK_SELF: DllLibrary = DllLibrary::Dinput8;
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
