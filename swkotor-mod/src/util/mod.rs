@@ -1,4 +1,4 @@
 pub mod iat;
-pub mod needle_finder;
 pub mod memory_patcher;
+pub mod needle_finder;
 pub mod poc;

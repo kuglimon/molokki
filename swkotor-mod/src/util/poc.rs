@@ -47,6 +47,5 @@ pub fn replace_resolution() {
             util::memory_patcher::patch_memory(needle.clone(), new_bytes);
         }
         log::trace!("Replaced {} instances", matches.len());
-
     }
 }

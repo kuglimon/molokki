@@ -2,7 +2,8 @@
 ///
 use std::{ffi::c_void, slice};
 use windows::Win32::System::Memory::{
-    VirtualProtect, VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_GUARD, PAGE_NOACCESS, PAGE_NOCACHE, PAGE_PROTECTION_FLAGS, PAGE_READWRITE, PAGE_WRITECOMBINE
+    VirtualProtect, VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_GUARD, PAGE_NOACCESS,
+    PAGE_NOCACHE, PAGE_PROTECTION_FLAGS, PAGE_READWRITE, PAGE_WRITECOMBINE,
 };
 
 #[allow(dead_code)]
@@ -18,17 +19,18 @@ fn naive_mem_search(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         return Some(0);
     }
     // Slide over haystack windows of length equal to needle
-    haystack.windows(needle.len()).position(|window| window == needle)
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
 
 /// Checks if the page is accessible by default
-fn skip_memory(mbi: & MEMORY_BASIC_INFORMATION) -> bool {
-    mbi.State != MEM_COMMIT ||
-    (mbi.Protect == PAGE_NOACCESS
-    || (mbi.Protect & PAGE_GUARD) == PAGE_GUARD
-    || (mbi.Protect & PAGE_NOCACHE) == PAGE_NOCACHE
-    || (mbi.Protect & PAGE_WRITECOMBINE) == PAGE_WRITECOMBINE)
-
+fn skip_memory(mbi: &MEMORY_BASIC_INFORMATION) -> bool {
+    mbi.State != MEM_COMMIT
+        || (mbi.Protect == PAGE_NOACCESS
+            || (mbi.Protect & PAGE_GUARD) == PAGE_GUARD
+            || (mbi.Protect & PAGE_NOCACHE) == PAGE_NOCACHE
+            || (mbi.Protect & PAGE_WRITECOMBINE) == PAGE_WRITECOMBINE)
 }
 /// Search the current process memory for the given `needle`
 /// Returns the first address where `needle` is found, or None if not found.
@@ -42,11 +44,13 @@ pub fn find_string_in_memory(needle: &[u8]) -> Option<*mut u8> {
     loop {
         let mut mbi = MEMORY_BASIC_INFORMATION::default();
         // VirtualQuery will fill `mbi` with info about the region containing `address`.
-        let result = unsafe { VirtualQuery(
-            Some(address as *const _),
-            &mut mbi,
-            std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
-        )};
+        let result = unsafe {
+            VirtualQuery(
+                Some(address as *const _),
+                &mut mbi,
+                std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
+            )
+        };
 
         if result == 0 {
             // No more regions to query
@@ -55,15 +59,13 @@ pub fn find_string_in_memory(needle: &[u8]) -> Option<*mut u8> {
 
         // We only scan committed, readable pages. (Skipping free/reserved/noaccess.)
         // A more complete approach also checks mbi.Protect, e.g., skipping PAGE_GUARD, etc.
-        if ! skip_memory(&mbi) {
+        if !skip_memory(&mbi) {
             let base = mbi.BaseAddress as usize;
             let region_size = mbi.RegionSize;
 
             // Construct a slice to read that memory. This is UNSAFE and can crash
             // if the region is partially accessible or there's a guard page.
-            let slice = unsafe {
-                slice::from_raw_parts(base as *const u8, region_size)
-            };
+            let slice = unsafe { slice::from_raw_parts(base as *const u8, region_size) };
 
             // Search for the needle.
             if let Some(pos) = naive_mem_search(slice, needle) {
@@ -89,7 +91,10 @@ fn naive_mem_search_all(haystack: &[u8], needle: &[u8]) -> Vec<usize> {
 
     let mut start = 0;
 
-    while let Some(pos) = haystack[start..].windows(needle.len()).position(|window| window == needle) {
+    while let Some(pos) = haystack[start..]
+        .windows(needle.len())
+        .position(|window| window == needle)
+    {
         let absolute_pos = start + pos;
         results.push(absolute_pos);
 
@@ -122,7 +127,7 @@ pub unsafe fn find_all_matches_in_memory(needle: &[u8]) -> Vec<*mut u8> {
         }
 
         // Check if this region is committed and readable
-        if ! skip_memory(&mbi) {
+        if !skip_memory(&mbi) {
             let base = mbi.BaseAddress as usize;
 
             let region_size = mbi.RegionSize;
@@ -135,7 +140,11 @@ pub unsafe fn find_all_matches_in_memory(needle: &[u8]) -> Vec<*mut u8> {
                 results.push(found_addr as *mut u8);
             }
         } else {
-            log::trace!("Skipping entry at {:p} with protect {:?}", mbi.BaseAddress, mbi.Protect);
+            log::trace!(
+                "Skipping entry at {:p} with protect {:?}",
+                mbi.BaseAddress,
+                mbi.Protect
+            );
         }
 
         // Move to the next region
