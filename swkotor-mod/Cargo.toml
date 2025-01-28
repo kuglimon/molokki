@@ -12,8 +12,12 @@ liveqa_tests = ["inventory", "mktemp"]
 
 [dependencies]
 env_logger = "0.11.6"
+gl = "0.14.0"
 inventory = { version = "0.3.17", optional = true }
 log = "0.4.25"
 mktemp = { version = "0.5.1", optional = true }
 plthook = "0.2.2"
 windows = { version = "0.59.0", features = ["Win32_Foundation", "Win32_System_Diagnostics", "Win32_System_Diagnostics_Debug", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading"] }
+
+[build-dependencies]
+gl_generator = "0.14.0"
