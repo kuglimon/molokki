@@ -1,7 +1,10 @@
 /// Module that contains some hopefully obsoleting functions that
 /// are usable for debugging.
 ///
-use crate::util;
+
+use crate::{graphics::{initialize_pending_setup_rendering, RendingStore}, util};
+
+use super::{imgui::ImguiRendable, textdraw::TextdrawRendable};
 
 #[allow(dead_code)]
 pub fn replace_mouse_button_text() {
@@ -48,4 +51,12 @@ pub fn replace_resolution() {
         }
         log::trace!("Replaced {} instances", matches.len());
     }
+}
+
+/// Wrap the current graphics renderer here
+#[allow(dead_code)]
+pub fn draw_boxes_on_screen() -> RendingStore {
+    let rendable = Box::new(TextdrawRendable::new());
+
+    initialize_pending_setup_rendering(rendable)
 }
