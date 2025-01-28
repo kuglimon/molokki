@@ -30,7 +30,6 @@ pub struct GlContextStorage {
     context: HGLRC,
 }
 
-
 unsafe impl Send for GlContextStorage {}
 unsafe impl Sync for GlContextStorage {}
 
