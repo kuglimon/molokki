@@ -9,8 +9,8 @@ use env_logger::Env;
 use log::trace;
 use windows::{core::HRESULT, Win32::Foundation::HINSTANCE};
 
-use crate::system::dll_loader::{get_proc_address, load_system_library_a, DllLibrary};
 use crate::liveqa;
+use crate::system::dll_loader::{get_proc_address, load_system_library_a, DllLibrary};
 
 // Holds the global state of our mod engine.
 //
