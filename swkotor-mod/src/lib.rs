@@ -3,11 +3,11 @@ pub mod liveqa;
 pub mod system;
 pub mod util;
 
+use crate::system::dll_loader::DllLibrary;
 use engine::SW_KOTOR_MOD_ENGINE;
 use log::trace;
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::SystemServices::*;
-use crate::system::dll_loader::DllLibrary;
 
 pub const DLL_MOCK_SELF: DllLibrary = DllLibrary::Dinput8;
 
