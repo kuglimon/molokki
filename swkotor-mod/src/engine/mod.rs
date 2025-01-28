@@ -1,13 +1,9 @@
 mod dinput8_dll;
-use std::{
-    ffi::c_void,
-    sync::{LazyLock, Mutex},
-};
+use std::sync::{LazyLock, Mutex};
 
-use dinput8_dll::{DirectInput8CreateFn, LPUNKNOWN, REFIID};
+use dinput8_dll::DirectInput8CreateFn;
 use env_logger::Env;
 use log::trace;
-use windows::{core::HRESULT, Win32::Foundation::HINSTANCE};
 
 use crate::liveqa;
 use crate::system::dll_loader::{get_proc_address, load_system_library_a, DllLibrary};
