@@ -30,7 +30,11 @@ impl<T: Clone> Drop for IatStoreInternal<T> {
     /// Once dropped, return the original function so that
     /// the original purpose will be handled. Similar as in plthook's own replace
     fn drop(&mut self) {
-        log::trace!("Restoring symbol {} function from module {}", self.symbol, self.module);
+        log::trace!(
+            "Restoring symbol {} function from module {}",
+            self.symbol,
+            self.module
+        );
         let res = replace_function_ptr(self.iat_slot as *mut T, &self.real_fn);
         if let Err(e) = res {
             log::error!("Failed to restore IAT slot: {}", e);
