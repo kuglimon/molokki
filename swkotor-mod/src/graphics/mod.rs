@@ -1,5 +1,6 @@
 /// Module to house the OpenGL bindings and related generic
 /// functions.
+pub mod glstate;
 pub mod opengl_bindings;
 pub mod rendering;
 
