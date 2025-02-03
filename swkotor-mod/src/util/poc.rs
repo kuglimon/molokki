@@ -1,8 +1,10 @@
 /// Module that contains some hopefully obsoleting functions that
 /// are usable for debugging.
 ///
-
-use crate::{graphics::{initialize_pending_setup_rendering, RendingStore}, util};
+use crate::{
+    graphics::{initialize_pending_setup_rendering, RendingStore},
+    util,
+};
 
 use super::{imgui::ImguiRendable, textdraw::TextdrawRendable};
 
@@ -57,6 +59,13 @@ pub fn replace_resolution() {
 #[allow(dead_code)]
 pub fn draw_boxes_on_screen() -> RendingStore {
     let rendable = Box::new(TextdrawRendable::new());
+
+    initialize_pending_setup_rendering(rendable)
+}
+
+#[allow(dead_code)]
+pub fn draw_imgui() -> RendingStore {
+    let rendable = Box::new(ImguiRendable::new());
 
     initialize_pending_setup_rendering(rendable)
 }
