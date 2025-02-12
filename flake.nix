@@ -60,6 +60,12 @@
           poe-trade-overlay = import ./poe-trade-overlay/shell.nix {
             inherit pkgs;
           };
+          swkotor-mod = import ./swkotor-mod/shell.nix {
+            inherit pkgs;
+            inherit crane;
+            inherit fenix;
+            inherit system;
+          };
         };
       }
     );
