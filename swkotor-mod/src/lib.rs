@@ -1,8 +1,8 @@
 pub mod engine;
 pub mod liveqa;
+mod mem;
 pub mod system;
 pub mod util;
-
 use crate::system::dll_loader::DllLibrary;
 use engine::SW_KOTOR_MOD_ENGINE;
 use log::trace;
