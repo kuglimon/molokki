@@ -52,7 +52,6 @@ mod tests {
 
     use super::RuntimeEnvironment;
 
-    // FIXME(tatu): There's something wonky here as these tests will randomly fail.
     static THE_RESOURCE: Lazy<Mutex<()>> = Lazy::new(Mutex::default);
     type TestResult<T = (), E = Box<dyn std::error::Error>> = std::result::Result<T, E>;
 
@@ -65,6 +64,7 @@ mod tests {
     #[test]
     fn it_uses_config_from_environment_variables() -> TestResult {
         let _shared = THE_RESOURCE.lock()?;
+        reset_env();
 
         env::set_var("EDITOR", "vim");
         env::set_var("HOME", "/tmp");
@@ -78,14 +78,13 @@ mod tests {
             Some("/tmp/.config/rojekti")
         );
 
-        reset_env();
-
         Ok(())
     }
 
     #[test]
     fn it_prioritizes_xdg_config_home() -> TestResult {
         let _shared = THE_RESOURCE.lock()?;
+        reset_env();
 
         env::set_var("EDITOR", "vim");
         env::set_var("HOME", "/tmp");
@@ -100,14 +99,13 @@ mod tests {
             Some("/what/.config/rojekti")
         );
 
-        reset_env();
-
         Ok(())
     }
 
     #[test]
     fn it_returns_an_error_when_config_dir_missing() -> TestResult {
         let _shared = THE_RESOURCE.lock()?;
+        reset_env();
 
         env::set_var("EDITOR", "vim");
 
@@ -115,8 +113,6 @@ mod tests {
 
         // FIXME(tatu): This should test that the error type is correct as well
         assert!(result.is_err());
-
-        reset_env();
 
         Ok(())
     }
