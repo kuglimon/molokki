@@ -11,10 +11,18 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, crane, fenix }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      crane,
+      fenix,
+    }:
     # FIXME(tatu): This is a lie, I only test these on x86_64 linux and darwin.
     # I should setup proper systems.
-    flake-utils.lib.eachDefaultSystem (system:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         lib = pkgs.lib;
@@ -25,10 +33,10 @@
         # XXX(tatu): I wonder if it would be easier to move all projects under
         #            something like pkgs?
         packages = rec {
-          fallout-save-editor = pkgs.callPackage ./fallout-save-editor/package.nix {};
-          rojekti = pkgs.callPackage ./rojekti/package.nix {};
-          pipemixer = pkgs.callPackage ./pipemixer/package.nix {};
-          poe-trade-overlay = pkgs.callPackage ./poe-trade-overlay/package.nix {};
+          fallout-save-editor = pkgs.callPackage ./fallout-save-editor/package.nix { };
+          rojekti = pkgs.callPackage ./rojekti/package.nix { };
+          pipemixer = pkgs.callPackage ./pipemixer/package.nix { };
+          poe-trade-overlay = pkgs.callPackage ./poe-trade-overlay/package.nix { };
           swkotor-mod = pkgs.callPackage ./swkotor-mod/package.nix {
             inherit crane;
             inherit fenix;
@@ -38,15 +46,19 @@
 
           # This output is used to generate the job matrix in github to build
           # each output separately.
-          build-matrix = pkgs.writeText "projects.json" (builtins.toJSON {
-            # Get all our projects while filtering out the default, otherwise
-            # we'd build it twice.
-            project = (lib.lists.remove "default" (builtins.attrNames self.outputs.packages.x86_64-linux));
-            # FIXME(tatu): This should support other architectures like darwin
-            # and arm
-            os = ["ubuntu-latest"];
-          });
+          build-matrix = pkgs.writeText "projects.json" (
+            builtins.toJSON {
+              # Get all our projects while filtering out the default, otherwise
+              # we'd build it twice.
+              project = (lib.lists.remove "default" (builtins.attrNames self.outputs.packages.x86_64-linux));
+              # FIXME(tatu): This should support other architectures like darwin
+              # and arm
+              os = [ "ubuntu-latest" ];
+            }
+          );
         };
+
+        formatter = pkgs.nixfmt-rfc-style;
 
         # shell.nix is mostly just for extra packages. If you just need the
         # packages you need for building 'nix develop' and 'nix-shell' are

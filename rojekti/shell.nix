@@ -1,7 +1,9 @@
 # FIXME(tatu): FIX this dependency duplication. What I'd really like to have is
 # shell inherit all the dependencies from the package.nix and then just add the
 # extra deps on top of those.
-{ pkgs ? import <nixpkgs> {} }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 let
   # FIXME(tatu): See top comment
   autosavevim = pkgs.writeShellScriptBin "autosavevim" ''
@@ -40,6 +42,6 @@ pkgs.mkShell {
     test-tmux
 
     # tmuxinator for testing feature parity
-    (ruby.withPackages (ps: with ps; [tmuxinator]))
+    (ruby.withPackages (ps: with ps; [ tmuxinator ]))
   ];
 }

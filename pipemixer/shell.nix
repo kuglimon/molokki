@@ -1,5 +1,7 @@
-{ pkgs ? import <nixpkgs> {} }:
-(pkgs.mkShell.override {stdenv = pkgs.llvmPackages.stdenv;}) {
+{
+  pkgs ? import <nixpkgs> { },
+}:
+(pkgs.mkShell.override { stdenv = pkgs.llvmPackages.stdenv; }) {
   buildInputs = with pkgs; [
     cargo
     alejandra

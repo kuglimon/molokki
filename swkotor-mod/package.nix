@@ -6,7 +6,7 @@
   symlinkJoin,
   # XXX(tatu): Am I supposed to pass system like this? Maybe this should be
   # higher up
-  system
+  system,
 }:
 let
   # Stolen from: https://github.com/deltachat/deltachat-core-rust/blob/8dcd8aa69d600ab5847bd1c38a08aee38af7c844/flake.nix#L159
@@ -17,20 +17,21 @@ let
   #
   # Use DWARF-2 instead of SJLJ for exception handling.
   winCC = pkgs.pkgsCross.mingw32.buildPackages.wrapCC (
-    (pkgs.pkgsCross.mingw32.buildPackages.gcc-unwrapped.override
-      ({
-        threadsCross = {
-          model = "win32";
-          package = null;
-        };
-      })).overrideAttrs (oldAttr: {
-      configureFlags = oldAttr.configureFlags ++ [
-        "--disable-sjlj-exceptions --with-dwarf2"
-      ];
-    })
+    (pkgs.pkgsCross.mingw32.buildPackages.gcc-unwrapped.override ({
+      threadsCross = {
+        model = "win32";
+        package = null;
+      };
+    })).overrideAttrs
+      (oldAttr: {
+        configureFlags = oldAttr.configureFlags ++ [
+          "--disable-sjlj-exceptions --with-dwarf2"
+        ];
+      })
   );
 
-  toolchain = with fenix.packages.${system};
+  toolchain =
+    with fenix.packages.${system};
     combine [
       minimal.rustc
       minimal.cargo
@@ -47,7 +48,7 @@ let
 
     CARGO_BUILD_TARGET = "i686-pc-windows-gnu";
 
-    TARGET_CC   = "${winCC}/bin/${winCC.targetPrefix}cc";
+    TARGET_CC = "${winCC}/bin/${winCC.targetPrefix}cc";
 
     CARGO_BUILD_RUSTFLAGS = [
       "-C"
@@ -126,5 +127,8 @@ let
 in
 symlinkJoin {
   name = "swkotor-mod";
-  paths = [ swkotor-mod runSWKotorMod ];
+  paths = [
+    swkotor-mod
+    runSWKotorMod
+  ];
 }

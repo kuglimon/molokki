@@ -1,5 +1,5 @@
 {
-  pkgs
+  pkgs,
 }:
 pkgs.rustPlatform.buildRustPackage {
   pname = "path-of-exile-price-overlay";

@@ -1,5 +1,5 @@
 {
-  pkgs
+  pkgs,
 }:
 pkgs.rustPlatform.buildRustPackage {
   pname = "fallout-save-editor";

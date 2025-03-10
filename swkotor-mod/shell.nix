@@ -1,8 +1,8 @@
 {
-  pkgs ? import <nixpkgs> {},
+  pkgs ? import <nixpkgs> { },
   crane,
   fenix,
-  system
+  system,
 }:
 # FIXME(tatu): I don't know how to get rid of this duplication. Keep this file
 # in sync with `package.nix`.
@@ -15,20 +15,21 @@ let
   #
   # Use DWARF-2 instead of SJLJ for exception handling.
   winCC = pkgs.pkgsCross.mingw32.buildPackages.wrapCC (
-    (pkgs.pkgsCross.mingw32.buildPackages.gcc-unwrapped.override
-      ({
-        threadsCross = {
-          model = "win32";
-          package = null;
-        };
-      })).overrideAttrs (oldAttr: {
-      configureFlags = oldAttr.configureFlags ++ [
-        "--disable-sjlj-exceptions --with-dwarf2"
-      ];
-    })
+    (pkgs.pkgsCross.mingw32.buildPackages.gcc-unwrapped.override ({
+      threadsCross = {
+        model = "win32";
+        package = null;
+      };
+    })).overrideAttrs
+      (oldAttr: {
+        configureFlags = oldAttr.configureFlags ++ [
+          "--disable-sjlj-exceptions --with-dwarf2"
+        ];
+      })
   );
 
-  toolchain = with fenix.packages.${system};
+  toolchain =
+    with fenix.packages.${system};
     combine [
       minimal.rustc
       minimal.cargo

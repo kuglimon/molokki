@@ -1,5 +1,5 @@
 {
-    pkgs
+  pkgs,
 }:
 let
   cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
