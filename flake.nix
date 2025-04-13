@@ -19,9 +19,7 @@
       crane,
       fenix,
     }:
-    # FIXME(tatu): This is a lie, I only test these on x86_64 linux and darwin.
-    # I should setup proper systems.
-    flake-utils.lib.eachDefaultSystem (
+    flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
