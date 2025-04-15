@@ -13,6 +13,9 @@ able to corrupt and uncorrupt (heresy) a `Krangle` through Kubernetes. On top of
 these Kubernetes objects maintain a `connected` boolean stating if the operator
 was able to create a connection with the said `Krangle`.
 
+When checking for connection `Krangles` with id 1 and 42 should always fail to
+connect (timeout). `Krangle` id 3 should flicker randomly (connection refused).
+
 ## Krangles REST API Documentation
 
 This API provides access to **Krangles**, allowing clients to retrieve and
