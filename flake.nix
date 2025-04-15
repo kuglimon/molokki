@@ -65,7 +65,7 @@
         #              something like lib.filesystem.packagesFromDirectoryRecursive
         # XXX(tatu): I wonder if it would be easier to move all projects under
         #            something like pkgs?
-        packages = rec {
+        packages = {
           # XXX(tatu): Should the default just build everything?
           default = self.packages.${system}.rojekti;
 
