@@ -81,7 +81,7 @@
               os = [ "ubuntu-latest" ];
             }
           );
-        } // derivations;
+        } // derivations // lib.mapAttrs (name: value: value.package) attrsets;
 
         formatter = pkgs.nixfmt-rfc-style;
 
@@ -89,9 +89,6 @@
         # packages you need for building 'nix develop' and 'nix-shell' are
         # smart enough to use 'package.nix'.
         devShells = {
-          fallout-save-editor = import ./fallout-save-editor/shell.nix {
-            inherit pkgs;
-          };
           rojekti = import ./rojekti/shell.nix { inherit pkgs; };
           pipemixer = import ./pipemixer/shell.nix { inherit pkgs; };
           poe-trade-overlay = import ./poe-trade-overlay/shell.nix {
@@ -103,7 +100,7 @@
             inherit fenix;
             inherit system;
           };
-        };
+        } // lib.mapAttrs (name: value: value.devShell) attrsets;
       }
     );
 }
