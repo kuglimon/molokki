@@ -83,6 +83,9 @@
           );
         } // derivations // lib.mapAttrs (name: value: value.package) attrsets;
 
+        checks = {
+        } // derivations // lib.mapAttrs (name: value: value.package) attrsets;
+
         formatter = pkgs.nixfmt-rfc-style;
 
         # shell.nix is mostly just for extra packages. If you just need the
