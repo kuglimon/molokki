@@ -18,28 +18,55 @@ let
     ${pkgs.tmux}/bin/tmux -L rojekti-it "$@"
   '';
 in
-pkgs.rustPlatform.buildRustPackage {
-  pname = cargoToml.package.name;
-  version = cargoToml.package.version;
-  nativeBuildInputs = with pkgs; [
-    pkg-config
-    rustPlatform.bindgenHook
+{
+  package = pkgs.rustPlatform.buildRustPackage {
+    pname = cargoToml.package.name;
+    version = cargoToml.package.version;
+    nativeBuildInputs = with pkgs; [
+      pkg-config
+      rustPlatform.bindgenHook
 
-    # Enable to debug failing builds
-    # breakpointHook
-  ];
+      # Enable to debug failing builds
+      # breakpointHook
+    ];
 
-  nativeCheckInputs = [
-    autosavevim
-    test-tmux
-  ];
+    nativeCheckInputs = [
+      autosavevim
+      test-tmux
+    ];
 
-  cargoLock.lockFile = ./Cargo.lock;
-  src = pkgs.lib.cleanSource ./.;
+    cargoLock.lockFile = ./Cargo.lock;
+    src = pkgs.lib.cleanSource ./.;
 
-  LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+    LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
 
-  checkPhase = ''
-    cargo test
-  '';
+    checkPhase = ''
+      cargo test
+    '';
+  };
+
+  devShell = pkgs.mkShell {
+    buildInputs = with pkgs; [
+      # FIXME(tatu): This is not optimal, this causes recompilation.
+      # `runPackage` should be used instead?
+      # FIXME(tatu): These are not working, not visible in cargo path
+      #
+      # Lord fucking mighty I love nix. Instead of fucking up users local
+      # neovim with some random ass version required for tests, we can just
+      # pass a special version to the command that needs it!
+      (cargo.overrideAttrs (oldAttrs: {
+        buildInputs = oldAttrs.buildInputs ++ [
+          autosavevim
+          test-tmux
+        ];
+      }))
+
+      alejandra
+      autosavevim
+      test-tmux
+
+      # tmuxinator for testing feature parity
+      (ruby.withPackages (ps: with ps; [ tmuxinator ]))
+    ];
+  };
 }
