@@ -125,10 +125,28 @@ let
     destination = "/bin/run-swkotor-mod";
   };
 in
-symlinkJoin {
-  name = "swkotor-mod";
-  paths = [
-    swkotor-mod
-    runSWKotorMod
-  ];
+{
+  package = symlinkJoin {
+    name = "swkotor-mod";
+    paths = [
+        swkotor-mod
+        runSWKotorMod
+    ];
+  };
+
+  devShell = craneLib.devShell {
+    # Take all inputs from the package, which gives us the full build environment
+    buildInputs = [
+        toolchain
+        winCC
+        pkgs.pkgsCross.mingw32.stdenv.cc
+        pkgs.pkgsCross.mingw32.windows.pthreads
+    ];
+
+    shellHook = ''
+        echo "Rust cross-compilation environment loaded!"
+        export CARGO_BUILD_TARGET="i686-pc-windows-gnu";
+        export TARGET_CC="${winCC}/bin/${winCC.targetPrefix}cc";
+    '';
+  };
 }
