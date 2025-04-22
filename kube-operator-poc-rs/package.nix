@@ -67,9 +67,9 @@ rec {
     };
   };
 
-  devShells.default = craneLib.devShell {
+  devShell = craneLib.devShell {
     # Inherit inputs from checks.
-    checks = checks.${system};
+    checks = checks;
 
     # Extra inputs can be added here; cargo and rustc are provided by default.
     packages = [
