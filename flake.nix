@@ -65,6 +65,8 @@
         #              something like lib.filesystem.packagesFromDirectoryRecursive
         # XXX(tatu): I wonder if it would be easier to move all projects under
         #            something like pkgs?
+        # FIXME(tatu): The attribute based setup doesn't play well with systems.
+        # I don't even know how they work now, by luck?
         packages = {
           # XXX(tatu): Should the default just build everything?
           default = self.packages.${system}.rojekti;
@@ -91,19 +93,7 @@
         # shell.nix is mostly just for extra packages. If you just need the
         # packages you need for building 'nix develop' and 'nix-shell' are
         # smart enough to use 'package.nix'.
-        devShells = {
-          rojekti = import ./rojekti/shell.nix { inherit pkgs; };
-          pipemixer = import ./pipemixer/shell.nix { inherit pkgs; };
-          poe-trade-overlay = import ./poe-trade-overlay/shell.nix {
-            inherit pkgs;
-          };
-          swkotor-mod = import ./swkotor-mod/shell.nix {
-            inherit pkgs;
-            inherit crane;
-            inherit fenix;
-            inherit system;
-          };
-        } // lib.mapAttrs (name: value: value.devShell) attrsets;
+        devShells = { } // lib.mapAttrs (name: value: value.devShell) attrsets;
       }
     );
 }
