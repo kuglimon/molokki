@@ -71,6 +71,21 @@ rec {
 
     # Extra inputs can be added here; cargo and rustc are provided by default.
     packages = [
+      pkgs.k3d
+      pkgs.docker
+      pkgs.kubectl
     ];
+
+    shellHook = ''
+      echo "Kubernetes Operator POC" | ${pkgs.figlet}/bin/figlet
+      echo
+      echo "Welcome to the Kubernetes Operator POC dev shell!"
+      echo "To start a cluster, run:"
+      echo "  k3d cluster create --config k8s/k3d-config.yaml"
+      echo "To stop a cluster, run:"
+      echo "  k3d cluster stop dev"
+      echo "To access your cluster:"
+      echo "  kubectl cluster-info"
+    '';
   };
 }
