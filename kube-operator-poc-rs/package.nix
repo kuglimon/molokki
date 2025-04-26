@@ -5,8 +5,6 @@
   system
 }:
 let
-  inherit (pkgs) lib;
-
   craneLib = crane.mkLib pkgs;
   src = craneLib.cleanCargoSource ./krangle-api;
 
