@@ -2,11 +2,13 @@
   pkgs,
   crane,
   fenix,
+  symlinkJoin,
   system
 }:
 let
   craneLib = crane.mkLib pkgs;
   src = craneLib.cleanCargoSource ./krangle-api;
+  operatorSrc = craneLib.cleanCargoSource ./krangle-operator;
 
   # Common arguments can be set here to avoid repeating them later
   commonArgs = {
@@ -21,18 +23,35 @@ let
     # MY_CUSTOM_VAR = "some value";
   };
 
+  operatorArgs = {
+    src = operatorSrc;
+    strictDeps = true;
+  };
+
   # Build *just* the cargo dependencies, so we can reuse
   # all of that work (e.g. via cachix) when running in CI
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+  operatorCargoArtifacts = craneLib.buildDepsOnly operatorArgs;
 
   # Build the actual crate itself, reusing the dependency
   # artifacts from above.
   krangle-api-crate = craneLib.buildPackage (commonArgs // {
     inherit cargoArtifacts;
   });
+
+  krangle-operator-crate = craneLib.buildPackage (operatorArgs // {
+    cargoArtifacts = operatorCargoArtifacts;
+  });
 in
 rec {
-  package = krangle-api-crate;
+  package = symlinkJoin {
+    name = "kube-operator-poc-rs";
+    paths = [
+      krangle-api-crate
+      krangle-operator-crate
+    ];
+  };
 
   checks = {
     # Build the crate as part of `nix flake check` for convenience
