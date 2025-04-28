@@ -3,6 +3,12 @@
 Trying to learn how to make operators in kubernetes using `kube.rs` and how to
 manage the whole environment using nix.
 
+## What's supported
+
+* Building rust based projects
+* Building OCI images of the rust projects
+* Setting up a local kubernetes cluster
+
 ## Specs
 
 A simple REST API that returns `Krangles`. Operator will fetch these using an
