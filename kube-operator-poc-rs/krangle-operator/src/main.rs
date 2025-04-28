@@ -1,3 +1,9 @@
+use kube::CustomResourceExt;
+mod controller;
+
 fn main() {
-    println!("Hello, world!");
+    print!(
+        "{}",
+        serde_yaml::to_string(&controller::Krangle::crd()).unwrap()
+    )
 }
