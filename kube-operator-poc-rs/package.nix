@@ -3,6 +3,7 @@
   crane,
   fenix,
   symlinkJoin,
+  runCommandLocal,
   system
 }:
 let
@@ -43,15 +44,29 @@ let
   krangle-operator-crate = craneLib.buildPackage (operatorArgs // {
     cargoArtifacts = operatorCargoArtifacts;
   });
-in
-rec {
-  package = symlinkJoin {
+
+  krangle-api-image = pkgs.dockerTools.buildLayeredImage {
+    name = "krangle-api";
+    tag = "latest";
+    contents = [ krangle-api-crate ];
+    config.Cmd = [ "/bin/krangle-api" ];
+  };
+
+  joined = symlinkJoin {
     name = "kube-operator-poc-rs";
     paths = [
       krangle-api-crate
       krangle-operator-crate
     ];
   };
+in
+rec {
+  package = runCommandLocal "kube-operator-poc-rs" {} ''
+    mkdir -p $out/images
+
+    cp -rs ${joined}/* $out
+    cp -rs ${krangle-api-image} $out/images
+  '';
 
   checks = {
     # Build the crate as part of `nix flake check` for convenience
