@@ -3,3 +3,10 @@ resolver = "2"
 members = [
   "crates/*"
 ]
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+# XXX(tatu): why does crane need this? I'll complain if missing.
+[workspace.metadata.crane]
+name = "krangle-workspace"
