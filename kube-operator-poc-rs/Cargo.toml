@@ -10,3 +10,4 @@ edition = "2024"
 # XXX(tatu): why does crane need this? I'll complain if missing.
 [workspace.metadata.crane]
 name = "krangle-workspace"
+

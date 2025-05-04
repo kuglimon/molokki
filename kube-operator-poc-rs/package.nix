@@ -45,6 +45,7 @@ let
       ./Cargo.lock
       (craneLib.fileset.commonCargoSources ./crates/krangle-api)
       (craneLib.fileset.commonCargoSources ./crates/krangle-operator)
+      (craneLib.fileset.commonCargoSources ./crates/xtask-crdgen)
       (craneLib.fileset.commonCargoSources crate)
     ];
   };
@@ -69,6 +70,12 @@ let
     src = fileSetForCrate ./crates/krangle-operator;
   });
 
+  krangle-xtask-crdgen-crate = craneLib.buildPackage (individualCrateArgs // {
+    pname = "xtask-crdgen";
+    cargoExtraArgs = "-p xtask-crdgen";
+    src = fileSetForCrate ./crates/xtask-crdgen;
+  });
+
   krangle-api-image = pkgs.dockerTools.buildLayeredImage {
     name = "krangle-api";
     tag = "latest";
@@ -81,6 +88,7 @@ let
     paths = [
       krangle-api-crate
       krangle-operator-crate
+      krangle-xtask-crdgen-crate
     ];
   };
 in

@@ -1,0 +1,9 @@
+[package]
+name = "xtask-crdgen"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+krangle-operator = { path = "../krangle-operator" }
+kube = { version = "0.99.0", features = ["runtime", "client", "derive"] }
+serde_yaml = "0.9.34"
