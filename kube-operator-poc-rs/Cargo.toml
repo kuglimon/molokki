@@ -12,6 +12,7 @@ kube = { version = "0.99.0", features = ["runtime", "client", "derive"] }
 k8s-openapi = { version = "0.24.0", features = ["latest"] }
 serde_yaml = "0.9.34"
 serde_json = "1.0.140"
+serde = { version ="1.0.219", features = ["derive"] }
 
 # XXX(tatu): why does crane need this? I'll complain if missing.
 [workspace.metadata.crane]
