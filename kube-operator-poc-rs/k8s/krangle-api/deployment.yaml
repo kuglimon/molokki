@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: krangle-api-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: krangle-api
+  template:
+    metadata:
+      labels:
+        app: krangle-api
+    spec:
+      containers:
+      - name: krangle-api
+        image: krangle-api
+        ports:
+        - containerPort: 8080

@@ -4,7 +4,8 @@
   fenix,
   symlinkJoin,
   runCommandLocal,
-  system
+  system,
+  writeShellApplication
 }:
 let
   inherit (pkgs) lib;
@@ -83,12 +84,35 @@ let
     config.Cmd = [ "/bin/krangle-api" ];
   };
 
+  script-deploy = writeShellApplication {
+    name = "deploy";
+
+    runtimeInputs = [
+      pkgs.kubectl
+      pkgs.docker
+    ];
+
+    text = ''
+      set -x
+
+      # Load the image to local daemon
+      docker load -i ${krangle-api-image}
+
+      # TODO(tatu): Does not support gzipped images, which nix creates
+      # Load image to local cluster
+      k3d image import -c dev ${krangle-api-image}
+
+      kubectl apply --server-side=true -f ${./k8s/krangle-api/deployment.yaml}
+    '';
+  };
+
   joined = symlinkJoin {
     name = "kube-operator-poc-rs";
     paths = [
       krangle-api-crate
       krangle-operator-crate
       krangle-xtask-crdgen-crate
+      script-deploy
     ];
   };
 in
@@ -140,6 +164,7 @@ rec {
       pkgs.k3d
       pkgs.docker
       pkgs.kubectl
+      pkgs.k9s
     ];
 
     shellHook = ''
