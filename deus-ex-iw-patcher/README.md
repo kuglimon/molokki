@@ -34,8 +34,8 @@ In 'pfx/drive_c/users/steamuser/Documents/Deus Ex - Invisible War/user.ini':
   FullscreenViewportX=2560
 ```
 
-This will create a file called `Engine.d2u.new` in the backup old `Engine.d2u`
-and replace with this.
+This will create a file called `Engine.d2u.new` in given file path. Backup old
+`Engine.d2u` and replace with `Engine.d2u.new`.
 
 # Credits
 
