@@ -15,7 +15,7 @@ Only tested on Steam version and on Linux (proton).
 
 ```bash
 deus-ex-iw-patcher patch-resolution \
-    "$HOME/.local/share/Steam/steamapps/common/Deus Ex Invisible War/System/Engine.backup" \
+    "$HOME/.local/share/Steam/steamapps/common/Deus Ex Invisible War/System/Engine.d2u" \
     -x 2560  \
     -y 1440
 ```
