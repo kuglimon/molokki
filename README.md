@@ -12,12 +12,14 @@ Molokki is a Finnish word for a garbage can that extends underground.
 
 ```sh
 .
-├── aoc2023             # advent of code 2023 puzzles
-├── pipemixer           # terminal based pipewire mixer
-├── fallout-save-editor # for editing Fallout 2 save files
-├── poe-trade-overlay   # trade overlay helper for poe
-├── swkotor-mod         # attempt at modding kotor1
-└── rojekti             # tmux session manager
+├── aoc2023              # advent of code 2023 puzzles
+├── pipemixer            # terminal based pipewire mixer
+├── fallout-save-editor  # for editing Fallout 2 save files
+├── deus-ex-iw-patcher   # fixes (like FOV) for DX:IW
+├── kube-operator-poc-rs # Kubernetes operator poc using rust
+├── poe-trade-overlay    # trade overlay helper for poe
+├── swkotor-mod          # attempt at modding kotor1
+└── rojekti              # tmux session manager
 ```
 
 ## Prerequisites
