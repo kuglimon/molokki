@@ -36,3 +36,8 @@ In 'pfx/drive_c/users/steamuser/Documents/Deus Ex - Invisible War/user.ini':
 
 This will create a file called `Engine.d2u.new` in the backup old `Engine.d2u`
 and replace with this.
+
+# Credits
+
+I did none of the reverse-engineering, I just monkied half-assed automation
+based on this post: https://www.wsgf.org/dr/deus-ex-invisible-war
