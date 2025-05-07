@@ -8,6 +8,7 @@ use axum::{
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, sync::Arc};
+use tokio::signal;
 use tracing::{error, info};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -63,8 +64,16 @@ async fn main() {
     info!("Listening on {}", addr);
 
     axum::serve(tokio::net::TcpListener::bind(addr).await.unwrap(), app)
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
+}
+
+async fn shutdown_signal() {
+    signal::ctrl_c()
+        .await
+        .expect("failed to install Ctrl+C handler");
+    info!("Shutdown signal received");
 }
 
 #[derive(Serialize, Deserialize)]
