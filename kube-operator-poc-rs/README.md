@@ -9,6 +9,15 @@ manage the whole environment using nix.
 * Building OCI images of the rust projects
 * Setting up a local kubernetes cluster
 
+## Nice to have
+
+* Local development story for:
+    * multiple services
+    * k8s
+    * local cluster development
+    * hot reload within local cluster
+* Deploying said services to an actual cluster
+
 ## Specs
 
 A simple REST API that returns `Krangles`. Operator will fetch these using an
