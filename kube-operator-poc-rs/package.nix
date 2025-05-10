@@ -84,6 +84,12 @@ let
     config.Cmd = [ "/bin/krangle-api" ];
   };
 
+  krangle-crds = runCommandLocal "gen-crds" {} ''
+    mkdir -p $out/k8s/crds
+
+    ${krangle-xtask-crdgen-crate}/bin/xtask-crdgen > $out/k8s/crds/krangle-crd.yaml
+  '';
+
   script-deploy = writeShellApplication {
     name = "deploy";
 
@@ -113,6 +119,7 @@ let
       krangle-operator-crate
       krangle-xtask-crdgen-crate
       script-deploy
+      krangle-crds
     ];
   };
 in
