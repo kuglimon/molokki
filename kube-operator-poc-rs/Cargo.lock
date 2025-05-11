@@ -879,6 +879,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "krangle-device"
+version = "0.1.0"
+
+[[package]]
 name = "krangle-operator"
 version = "0.1.0"
 dependencies = [
