@@ -12,5 +12,6 @@ let
   };
 in
 {
+  package = fhs;
   devShell = fhs.env;
 }
