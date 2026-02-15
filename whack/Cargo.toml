@@ -1,0 +1,12 @@
+[package]
+name = "whack"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = []
+
+[[bin]]
+bench = false
+path = "crates/core/main.rs"
+name = "whack"
