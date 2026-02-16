@@ -3,6 +3,17 @@
 }:
 let
   cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+
+  bashWithTests = import ./pkgs/bash { inherit pkgs; };
+
+  run-all-tests = pkgs.writeShellApplication {
+    name = "run-tests.sh";
+
+    runtimeInputs = [
+    ];
+
+    text = builtins.readFile ./run-tests.sh;
+  };
 in
 {
   package = pkgs.rustPlatform.buildRustPackage {
@@ -29,5 +40,7 @@ in
   devShell = pkgs.mkShell {
     buildInputs = [
     ];
+
+    packages = [ run-all-tests ];
   };
 }

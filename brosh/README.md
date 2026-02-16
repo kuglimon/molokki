@@ -1,4 +1,4 @@
-# Whack - The mandatory rust rewrite of Bash
+# Brosh - The mandatory rust rewrite of Bash
 
 Why?
 
