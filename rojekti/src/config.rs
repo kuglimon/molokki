@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::error::Error;
-use crate::error::ErrorKind;
+use crate::error::RojektiError;
 
 #[derive(Debug)]
 pub struct RuntimeEnvironment {
@@ -25,7 +25,7 @@ impl RuntimeEnvironment {
                 env::var("HOME").map(|home| Path::new(&home).join(".config").to_path_buf())
             })
             .map_err(|_| {
-                Error::new(ErrorKind::RuntimeError(
+                Error::new(RojektiError::RuntimeError(
                     "Broken runtime environment: HOME or XDG_CONFIG_HOME set".to_string(),
                 ))
             })?;

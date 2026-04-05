@@ -3,16 +3,16 @@ use std::{io, result};
 pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Debug)]
-pub struct Error(Box<ErrorKind>);
+pub struct Error(Box<RojektiError>);
 
 impl Error {
-    pub fn new(kind: ErrorKind) -> Error {
+    pub fn new(kind: RojektiError) -> Error {
         Error(Box::new(kind))
     }
 }
 
 #[derive(Debug)]
-pub enum ErrorKind {
+pub enum RojektiError {
     /// I/O related error
     Io(io::Error),
 
@@ -28,12 +28,12 @@ pub enum ErrorKind {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        Error::new(ErrorKind::Io(err))
+        Error::new(RojektiError::Io(err))
     }
 }
 
 impl From<&str> for Error {
     fn from(err: &str) -> Error {
-        Error::new(ErrorKind::Other(err.to_owned()))
+        Error::new(RojektiError::Other(err.to_owned()))
     }
 }
