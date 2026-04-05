@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use std::{env, os::unix::process::CommandExt, process::Command};
 
-use crate::error::Result;
+use crate::error::{Result, RojektiError};
 use crate::project::{render_default_template, ProjectState};
 use crate::{config::RuntimeEnvironment, StartArgs};
 
@@ -30,11 +30,13 @@ pub fn run(config: RuntimeEnvironment, args: &StartArgs, project_name: &str) -> 
         ProjectState::Exists(project) => {
             let script = project.render()?;
 
-            // TODO(tatu): Handle errors
-            Command::new(env::var("SHELL").expect("SHELL not set, brother get some help"))
-                .args(["-c", &script])
-                .exec();
-            Ok(())
+            let shell = env::var("SHELL").map_err(|_| {
+                RojektiError::RuntimeError("$SHELL not set correctly, cannot continue".to_owned())
+            })?;
+
+            // Exec replaces the project, it can only error out if it returns.
+            let status = Command::new(shell).args(["-c", &script]).exec();
+            Err(RojektiError::Io(status))
         }
     }
 }
