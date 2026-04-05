@@ -1,6 +1,6 @@
 use std::{io, result};
 
-pub type Result<T> = result::Result<T, Error>;
+pub type Result<T> = result::Result<T, RojektiError>;
 
 #[derive(Debug)]
 pub struct Error(Box<RojektiError>);
@@ -26,14 +26,14 @@ pub enum RojektiError {
     Other(String),
 }
 
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error {
-        Error::new(RojektiError::Io(err))
+impl From<io::Error> for RojektiError {
+    fn from(err: io::Error) -> RojektiError {
+        RojektiError::Io(err)
     }
 }
 
-impl From<&str> for Error {
-    fn from(err: &str) -> Error {
-        Error::new(RojektiError::Other(err.to_owned()))
+impl From<&str> for RojektiError {
+    fn from(err: &str) -> RojektiError {
+        RojektiError::Other(err.to_owned())
     }
 }

@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::error::Error;
+use crate::error::Result;
 use crate::error::RojektiError;
 
 #[derive(Debug)]
@@ -18,16 +18,16 @@ impl RuntimeEnvironment {
     ///
     /// Following variables are used: `XDG_CONFIG_HOME` as the configuration directory. Fallback to
     /// using `HOME` if `XDG_CONFIG_HOME` is not found. PWD is fetched based on rust std.
-    pub fn from_env() -> Result<Self, Error> {
+    pub fn from_env() -> Result<Self> {
         let config_home = env::var("XDG_CONFIG_HOME")
             .map(|xdg_config_home| Path::new(&xdg_config_home).to_path_buf())
             .or_else(|_| {
                 env::var("HOME").map(|home| Path::new(&home).join(".config").to_path_buf())
             })
             .map_err(|_| {
-                Error::new(RojektiError::RuntimeError(
+                RojektiError::RuntimeError(
                     "Broken runtime environment: HOME or XDG_CONFIG_HOME set".to_string(),
-                ))
+                )
             })?;
 
         let layout_path = config_home.join("rojekti");
