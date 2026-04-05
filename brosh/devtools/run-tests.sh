@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 # Simple test runner for GNU Bash test suite
-# Usage: ./run-tests.sh [path-to-shell] [test-filter]
+# Usage: ./run-tests.sh [path-to-shell] [test-dir] [test-filter]
 
 set -euo pipefail
 
 # Configuration
-SHELL_TO_TEST="${1:-../bash}"
-FILTER="${2:-}"
-TESTS_DIR="$(dirname "$0")"
+SHELL_TO_TEST="${1:-./bash/bash}"
+TESTS_DIR="$2"
+FILTER="${3:-}"
 
 # Colors
 RED='\033[0;31m'
@@ -48,20 +48,20 @@ run_test() {
 
     if [[ ! -f "$expected_file" ]]; then
         echo -e "  ${YELLOW}○ SKIP${NC} ${test_name} (no .right file)"
-        ((SKIPPED++))
+
+        SKIPPED=$((SKIPPED++))
         return 0
     fi
 
     # Set up environment
     local output
     output=$(
-        cd "$TESTS_DIR"
         PATH=".:$PATH" \
         THIS_SH="$SHELL_TO_TEST" \
         LC_ALL=C \
         LANG=C \
         TERM=dumb \
-        "$SHELL_TO_TEST" "./${test_name}.tests" 2>&1
+        "$SHELL_TO_TEST" "./$test_file" 2>&1
     ) || true
 
     # Compare output
@@ -70,10 +70,11 @@ run_test() {
 
     if [[ "$output" == "$expected" ]]; then
         echo -e "  ${GREEN}✓ PASS${NC} ${test_name}"
-        ((PASSED++))
+        PASSED=$((PASSED++))
     else
         echo -e "  ${RED}✗ FAIL${NC} ${test_name}"
-        ((FAILED++))
+        echo "$output"
+        FAILED=$((FAILED++))
         FAILED_TESTS+=("$test_name")
     fi
 }
@@ -108,7 +109,7 @@ main() {
             continue
         fi
 
-        ((TOTAL++))
+        TOTAL=$((TOTAL + 1))
         run_test "$test_name"
     done
 
