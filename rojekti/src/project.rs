@@ -125,30 +125,6 @@ fn read_yaml(content: &str) -> Config {
 
     let root = Node::root(doc);
 
-    let windows = doc["windows"]
-        .as_vec()
-        .expect("windows can only be a list")
-        .to_vec()
-        .iter()
-        .map(|window| {
-            // FIXME(tatu): Horrible shit and doesn't support pane configuration
-            if let Some(properties) = window.as_hash() {
-                let (key, value) = properties.front().unwrap();
-                let panels = PanelLayout::SinglePanel {
-                    panel: Panel {
-                        command: value.as_str().map(String::from),
-                    },
-                };
-                Window {
-                    name: key.as_str().unwrap().to_string(),
-                    panels,
-                }
-            } else {
-                panic!("malformed configuration bro");
-            }
-        })
-        .collect::<Vec<Window>>();
-
     let windows = root
         .required("windows")
         .expect("should contain window")
