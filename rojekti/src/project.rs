@@ -130,47 +130,17 @@ fn read_yaml(content: &str) -> Result<Config> {
 
     let config = Config {
         name: root.required_string("name")?,
-        root: root.optional("root").map(|n| n.as_string()).transpose()?,
-        socket_name: root
-            .optional("socket_name")
-            .map(|n| n.as_string())
-            .transpose()?,
-        on_project_start: root
-            .optional("on_project_start")
-            .map(|n| n.as_string())
-            .transpose()?,
-        on_project_first_start: root
-            .optional("on_project_first_start")
-            .map(|n| n.as_string())
-            .transpose()?,
-        on_project_restart: root
-            .optional("on_project_restart")
-            .map(|n| n.as_string())
-            .transpose()?,
-        on_project_exit: root
-            .optional("on_project_exit")
-            .map(|n| n.as_string())
-            .transpose()?,
-        on_project_stop: root
-            .optional("on_project_stop")
-            .map(|n| n.as_string())
-            .transpose()?,
-        pre_window: root
-            .optional("pre_window")
-            .map(|n| n.as_string())
-            .transpose()?,
-        tmux_options: root
-            .optional("tmux_options")
-            .map(|n| n.as_string())
-            .transpose()?,
-        tmux_command: root
-            .optional("tmux_command")
-            .map(|n| n.as_string())
-            .transpose()?,
-        startup_window: root
-            .optional("startup_window")
-            .map(|n| n.as_string())
-            .transpose()?,
+        root: root.optional_string("root")?,
+        socket_name: root.optional_string("socket_name")?,
+        on_project_start: root.optional_string("on_project_start")?,
+        on_project_first_start: root.optional_string("on_project_first_start")?,
+        on_project_restart: root.optional_string("on_project_restart")?,
+        on_project_exit: root.optional_string("on_project_exit")?,
+        on_project_stop: root.optional_string("on_project_stop")?,
+        pre_window: root.optional_string("pre_window")?,
+        tmux_options: root.optional_string("tmux_options")?,
+        tmux_command: root.optional_string("tmux_command")?,
+        startup_window: root.optional_string("startup_window")?,
         startup_pane: root
             .optional("startup_pane")
             .map(|n| n.as_u64())
@@ -185,14 +155,8 @@ fn read_yaml(content: &str) -> Result<Config> {
             .map(|n| n.as_bool())
             .transpose()?
             .unwrap_or(false),
-        pane_title_position: root
-            .optional("pane_title_position")
-            .map(|n| n.as_string())
-            .transpose()?,
-        pane_title_format: root
-            .optional("pane_title_format")
-            .map(|n| n.as_string())
-            .transpose()?,
+        pane_title_position: root.optional_string("pane_title_position")?,
+        pane_title_format: root.optional_string("pane_title_format")?,
         windows,
     };
 
@@ -323,6 +287,10 @@ impl<'a> Node<'a> {
             .as_str()
             .ok_or_else(|| self.err("expected string"))
             .map(String::from)
+    }
+
+    fn optional_string(&self, key: &str) -> Result<Option<String>> {
+        self.optional(key).map(|n| n.as_string()).transpose()
     }
 
     pub fn as_single_entry(&self) -> Result<(&'a str, Node<'a>)> {
