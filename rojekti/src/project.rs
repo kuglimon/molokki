@@ -1,7 +1,8 @@
+use core::fmt;
 use minijinja::{context, Environment};
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
+use std::{fs, result};
 use yaml_rust2::{Yaml, YamlLoader};
 
 use crate::error::Result;
@@ -115,36 +116,14 @@ pub struct Project {
     tmux_session_state: TmuxSessionState,
 }
 
-fn try_as_string(doc: &Yaml, key: &str) -> Option<String> {
-    if doc[key].is_badvalue() {
-        None
-    } else {
-        Some(doc[key].as_str().unwrap().to_string())
-    }
-}
-
-fn try_as_u64(doc: &Yaml, key: &str) -> Option<u64> {
-    if doc[key].is_badvalue() {
-        None
-    } else {
-        Some(u64::try_from(doc[key].as_i64().unwrap()).unwrap())
-    }
-}
-
-fn try_as_bool(doc: &Yaml, key: &str, default: bool) -> bool {
-    if doc[key].is_badvalue() {
-        default
-    } else {
-        doc[key].as_bool().unwrap()
-    }
-}
-
 // FIXME(tatu): Reduce love of panics
 fn read_yaml(content: &str) -> Config {
     let docs = YamlLoader::load_from_str(content).unwrap();
 
     // FIXME(tatu): verify we only have one document
     let doc = &docs.get(0).expect("configuration is empty");
+
+    let root = Node::root(doc);
 
     let windows = doc["windows"]
         .as_vec()
@@ -170,26 +149,97 @@ fn read_yaml(content: &str) -> Config {
         })
         .collect::<Vec<Window>>();
 
+    let windows = root
+        .required("windows")
+        .expect("should contain window")
+        .each(parse_window)
+        .expect("should have parsed windows");
+
     Config {
-        name: try_as_string(&doc, "name").expect("project should always have a name"),
-        root: try_as_string(&doc, "root"),
-        socket_name: try_as_string(&doc, "socket_name"),
-        on_project_start: try_as_string(&doc, "on_project_start"),
-        on_project_first_start: try_as_string(&doc, "on_project_first_start"),
-        on_project_restart: try_as_string(&doc, "on_project_restart"),
-        on_project_exit: try_as_string(&doc, "on_project_exit"),
-        on_project_stop: try_as_string(&doc, "on_project_stop"),
-        pre_window: try_as_string(&doc, "pre_window"),
-        tmux_options: try_as_string(&doc, "tmux_options"),
-        tmux_command: try_as_string(&doc, "tmux_command"),
-        startup_window: try_as_string(&doc, "startup_window"),
-        startup_pane: try_as_u64(&doc, "startup_pane"),
-        attach: try_as_bool(&doc, "attach", true),
-        enable_pane_titles: try_as_bool(&doc, "enable_pane_titles", false),
-        pane_title_position: try_as_string(&doc, "pane_title_position"),
-        pane_title_format: try_as_string(&doc, "pane_title_format"),
+        name: root
+            .required_string("name")
+            .expect("project should always have a name"),
+        root: root
+            .optional("root")
+            .map(|n| n.as_string().expect("root should be a string")),
+        socket_name: root
+            .optional("socket_name")
+            .map(|n| n.as_string().expect("socket_name should be a string")),
+        on_project_start: root
+            .optional("on_project_start")
+            .map(|n| n.as_string().expect("on_project_start should be a string")),
+        on_project_first_start: root.optional("on_project_first_start").map(|n| {
+            n.as_string()
+                .expect("on_project_first_start should be a string")
+        }),
+        on_project_restart: root.optional("on_project_restart").map(|n| {
+            n.as_string()
+                .expect("on_project_restart should be a string")
+        }),
+        on_project_exit: root
+            .optional("on_project_exit")
+            .map(|n| n.as_string().expect("on_project_exit should be a string")),
+        on_project_stop: root
+            .optional("on_project_stop")
+            .map(|n| n.as_string().expect("on_project_stop should be a string")),
+        pre_window: root
+            .optional("pre_window")
+            .map(|n| n.as_string().expect("pre_window should be a string")),
+        tmux_options: root
+            .optional("tmux_options")
+            .map(|n| n.as_string().expect("tmux_options should be a string")),
+        tmux_command: root
+            .optional("tmux_command")
+            .map(|n| n.as_string().expect("tmux_command should be a string")),
+        startup_window: root
+            .optional("startup_window")
+            .map(|n| n.as_string().expect("startup_window should be a string")),
+        startup_pane: root.optional("startup_pane").map(|n| {
+            n.as_u64()
+                .expect("startup_pane should be an unsigned integer")
+        }),
+        attach: root
+            .optional("attach")
+            .map(|n| n.as_bool().unwrap_or(true))
+            .unwrap_or(true),
+        enable_pane_titles: root
+            .optional("enable_pane_titles")
+            .map(|n| n.as_bool().unwrap_or(false))
+            .unwrap_or(false),
+        pane_title_position: root.optional("pane_title_position").map(|n| {
+            n.as_string()
+                .expect("pane_title_position should be a string")
+        }),
+        pane_title_format: root
+            .optional("pane_title_format")
+            .map(|n| n.as_string().expect("pane_title_format should be a string")),
         windows,
     }
+}
+
+fn parse_window(node: Node) -> result::Result<Window, ParseError> {
+    // Each window entry is a single-key map: `- window_name: <value>`
+    let (name, value) = node.as_single_entry()?;
+
+    let panels = if value.is_str() {
+        // Simple: `- editor: vim`
+        PanelLayout::SinglePanel {
+            panel: Panel {
+                command: Some(value.as_string()?),
+            },
+        }
+    } else if value.is_null() {
+        PanelLayout::SinglePanel {
+            panel: Panel { command: None },
+        }
+    } else {
+        return Err(value.err("unexpected window value type"));
+    };
+
+    Ok(Window {
+        name: name.to_string(),
+        panels,
+    })
 }
 
 impl Project {
@@ -206,6 +256,180 @@ impl Project {
 
     pub fn render(&self) -> Result<String> {
         render_tmux_template(&self)
+    }
+}
+
+#[derive(Debug)]
+pub struct ParseError {
+    pub path: String,
+    pub message: String,
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "at {}: {}", self.path, self.message)
+    }
+}
+
+impl std::error::Error for ParseError {}
+
+#[derive(Clone)]
+pub struct Node<'a> {
+    yaml: &'a Yaml,
+    path: String,
+}
+
+impl<'a> Node<'a> {
+    pub fn root(yaml: &'a Yaml) -> Self {
+        Node {
+            yaml,
+            path: "$".into(),
+        }
+    }
+
+    fn child(&self, segment: &str) -> Node<'a> {
+        Node {
+            yaml: &self.yaml[segment],
+            path: format!("{}.{}", self.path, segment),
+        }
+    }
+
+    fn err(&self, message: impl Into<String>) -> ParseError {
+        ParseError {
+            path: self.path.clone(),
+            message: message.into(),
+        }
+    }
+
+    pub fn required(&self, key: &str) -> result::Result<Node<'a>, ParseError> {
+        let node = self.child(key);
+        if node.yaml.is_badvalue() || node.yaml.is_null() {
+            Err(self.err(format!("missing required key {}", key)))
+        } else {
+            Ok(node)
+        }
+    }
+
+    fn index(&self, i: usize, yaml: &'a Yaml) -> Node<'a> {
+        Node {
+            yaml,
+            path: format!("{}[{}]", self.path, i),
+        }
+    }
+
+    pub fn optional(&self, key: &str) -> Option<Node<'a>> {
+        let node = self.child(key);
+        if node.yaml.is_badvalue() || node.yaml.is_null() {
+            None
+        } else {
+            Some(node)
+        }
+    }
+
+    fn as_u64(&self) -> result::Result<u64, ParseError> {
+        self.yaml
+            .as_i64()
+            .and_then(|v| u64::try_from(v).ok())
+            .ok_or_else(|| self.err("expected unsigned integer"))
+    }
+
+    fn as_str(&self) -> result::Result<&str, ParseError> {
+        self.yaml
+            .as_str()
+            .ok_or_else(|| self.err("expected string"))
+    }
+
+    fn as_string(&self) -> result::Result<String, ParseError> {
+        self.as_str().map(String::from)
+    }
+
+    fn as_bool(&self) -> result::Result<bool, ParseError> {
+        self.yaml
+            .as_bool()
+            .ok_or_else(|| self.err("expected boolean"))
+    }
+
+    fn required_string(&self, key: &str) -> result::Result<String, ParseError> {
+        self.required(key)?
+            .yaml
+            .as_str()
+            .ok_or_else(|| self.err("expected string"))
+            .map(String::from)
+    }
+
+    pub fn as_single_entry(&self) -> result::Result<(&'a str, Node<'a>), ParseError> {
+        let hash = self
+            .yaml
+            .as_hash()
+            .ok_or_else(|| self.err("expected map"))?;
+        if hash.len() != 1 {
+            return Err(self.err(format!(
+                "expected single-entry map, got {} keys",
+                hash.len()
+            )));
+        }
+        let (key, value) = hash.front().unwrap();
+        let key_str = key
+            .as_str()
+            .ok_or_else(|| self.err("map key must be a string"))?;
+        let child = Node {
+            yaml: value,
+            path: format!("{}.{}", self.path, key_str),
+        };
+        Ok((key_str, child))
+    }
+
+    pub fn entries(&self) -> result::Result<Vec<(&'a str, Node<'a>)>, ParseError> {
+        let hash = self
+            .yaml
+            .as_hash()
+            .ok_or_else(|| self.err("expected map"))?;
+        hash.iter()
+            .map(|(k, v)| {
+                let key = k
+                    .as_str()
+                    .ok_or_else(|| self.err("map key must be a string"))?;
+                Ok((
+                    key,
+                    Node {
+                        yaml: v,
+                        path: format!("{}.{}", self.path, key),
+                    },
+                ))
+            })
+            .collect()
+    }
+
+    pub fn each<F, T>(&self, f: F) -> result::Result<Vec<T>, ParseError>
+    where
+        F: Fn(Node<'a>) -> result::Result<T, ParseError>,
+    {
+        let items = self
+            .yaml
+            .as_vec()
+            .ok_or_else(|| self.err("expected list"))?;
+
+        items
+            .iter()
+            .enumerate()
+            .map(|(i, item)| f(self.index(i, item)))
+            .collect()
+    }
+
+    pub fn is_str(&self) -> bool {
+        self.yaml.as_str().is_some()
+    }
+
+    pub fn is_list(&self) -> bool {
+        self.yaml.as_vec().is_some()
+    }
+
+    pub fn is_map(&self) -> bool {
+        self.yaml.as_hash().is_some()
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.yaml.is_null() || self.yaml.is_badvalue()
     }
 }
 
