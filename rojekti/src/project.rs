@@ -115,81 +115,88 @@ pub struct Project {
     tmux_session_state: TmuxSessionState,
 }
 
-// FIXME(tatu): Reduce love of panics
-fn read_yaml(content: &str) -> Config {
-    let docs = YamlLoader::load_from_str(content).unwrap();
-
-    // FIXME(tatu): verify we only have one document
-    let doc = &docs.get(0).expect("configuration is empty");
-
+fn read_yaml(content: &str) -> Result<Config> {
+    let docs = YamlLoader::load_from_str(content).map_err(|e| RojektiError::ParseError {
+        path: "$".into(),
+        message: e.to_string(),
+    })?;
+    let doc = &docs.first().ok_or_else(|| RojektiError::ParseError {
+        path: "$".into(),
+        message: "empty document".into(),
+    })?;
     let root = Node::root(doc);
 
-    let windows = root
-        .required("windows")
-        .expect("should contain window")
-        .each(parse_window)
-        .expect("should have parsed windows");
+    let windows = root.required("windows")?.each(parse_window)?;
 
-    Config {
-        name: root
-            .required_string("name")
-            .expect("project should always have a name"),
-        root: root
-            .optional("root")
-            .map(|n| n.as_string().expect("root should be a string")),
+    let config = Config {
+        name: root.required_string("name")?,
+        root: root.optional("root").map(|n| n.as_string()).transpose()?,
         socket_name: root
             .optional("socket_name")
-            .map(|n| n.as_string().expect("socket_name should be a string")),
+            .map(|n| n.as_string())
+            .transpose()?,
         on_project_start: root
             .optional("on_project_start")
-            .map(|n| n.as_string().expect("on_project_start should be a string")),
-        on_project_first_start: root.optional("on_project_first_start").map(|n| {
-            n.as_string()
-                .expect("on_project_first_start should be a string")
-        }),
-        on_project_restart: root.optional("on_project_restart").map(|n| {
-            n.as_string()
-                .expect("on_project_restart should be a string")
-        }),
+            .map(|n| n.as_string())
+            .transpose()?,
+        on_project_first_start: root
+            .optional("on_project_first_start")
+            .map(|n| n.as_string())
+            .transpose()?,
+        on_project_restart: root
+            .optional("on_project_restart")
+            .map(|n| n.as_string())
+            .transpose()?,
         on_project_exit: root
             .optional("on_project_exit")
-            .map(|n| n.as_string().expect("on_project_exit should be a string")),
+            .map(|n| n.as_string())
+            .transpose()?,
         on_project_stop: root
             .optional("on_project_stop")
-            .map(|n| n.as_string().expect("on_project_stop should be a string")),
+            .map(|n| n.as_string())
+            .transpose()?,
         pre_window: root
             .optional("pre_window")
-            .map(|n| n.as_string().expect("pre_window should be a string")),
+            .map(|n| n.as_string())
+            .transpose()?,
         tmux_options: root
             .optional("tmux_options")
-            .map(|n| n.as_string().expect("tmux_options should be a string")),
+            .map(|n| n.as_string())
+            .transpose()?,
         tmux_command: root
             .optional("tmux_command")
-            .map(|n| n.as_string().expect("tmux_command should be a string")),
+            .map(|n| n.as_string())
+            .transpose()?,
         startup_window: root
             .optional("startup_window")
-            .map(|n| n.as_string().expect("startup_window should be a string")),
-        startup_pane: root.optional("startup_pane").map(|n| {
-            n.as_u64()
-                .expect("startup_pane should be an unsigned integer")
-        }),
+            .map(|n| n.as_string())
+            .transpose()?,
+        startup_pane: root
+            .optional("startup_pane")
+            .map(|n| n.as_u64())
+            .transpose()?,
         attach: root
             .optional("attach")
-            .map(|n| n.as_bool().unwrap_or(true))
+            .map(|n| n.as_bool())
+            .transpose()?
             .unwrap_or(true),
         enable_pane_titles: root
             .optional("enable_pane_titles")
-            .map(|n| n.as_bool().unwrap_or(false))
+            .map(|n| n.as_bool())
+            .transpose()?
             .unwrap_or(false),
-        pane_title_position: root.optional("pane_title_position").map(|n| {
-            n.as_string()
-                .expect("pane_title_position should be a string")
-        }),
+        pane_title_position: root
+            .optional("pane_title_position")
+            .map(|n| n.as_string())
+            .transpose()?,
         pane_title_format: root
             .optional("pane_title_format")
-            .map(|n| n.as_string().expect("pane_title_format should be a string")),
+            .map(|n| n.as_string())
+            .transpose()?,
         windows,
-    }
+    };
+
+    Ok(config)
 }
 
 fn parse_window(node: Node) -> Result<Window> {
@@ -219,7 +226,7 @@ fn parse_window(node: Node) -> Result<Window> {
 
 impl Project {
     fn load_str(_: &StartArgs, contents: &str) -> Result<Self> {
-        let config: Config = read_yaml(contents);
+        let config: Config = read_yaml(contents)?;
 
         Ok(Project {
             config,
@@ -599,7 +606,7 @@ mod tests {
             - logs: tail -f log/development.log
             "###;
 
-        let config: Config = read_yaml(yaml);
+        let config: Config = read_yaml(yaml).expect("should have read configuration");
 
         assert!(config.name == "sample");
         assert!(config.root == Some("~/".to_string()));

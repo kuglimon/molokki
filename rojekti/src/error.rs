@@ -32,6 +32,15 @@ impl From<&str> for RojektiError {
     }
 }
 
+impl From<yaml_rust2::ScanError> for RojektiError {
+    fn from(err: yaml_rust2::ScanError) -> RojektiError {
+        RojektiError::ParseError {
+            path: "$".into(),
+            message: err.to_string(),
+        }
+    }
+}
+
 impl Display for RojektiError {
     fn fmt(&self, f: &mut Formatter) -> result::Result<(), std::fmt::Error> {
         match self {
