@@ -15,6 +15,9 @@ pub enum RojektiError {
 
     /// Mostly unknown errors, which should be refactored to more concrete types
     Other(String),
+
+    /// Configuration parsing error with path context (e.g. "$.windows[2].panes[0]")
+    ParseError { path: String, message: String },
 }
 
 impl From<io::Error> for RojektiError {
@@ -38,6 +41,9 @@ impl Display for RojektiError {
             }
             RojektiError::Other(error) => {
                 write!(f, "Unknown error {}", error.to_string())
+            }
+            RojektiError::ParseError { path, message } => {
+                write!(f, "Parse error at {}: {}", path, message)
             }
         }
     }

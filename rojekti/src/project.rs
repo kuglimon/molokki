@@ -1,11 +1,10 @@
-use core::fmt;
 use minijinja::{context, Environment};
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::path::PathBuf;
-use std::{fs, result};
 use yaml_rust2::{Yaml, YamlLoader};
 
-use crate::error::Result;
+use crate::error::{Result, RojektiError};
 use crate::tmux::TmuxSessionState;
 use crate::{config, StartArgs};
 
@@ -193,7 +192,7 @@ fn read_yaml(content: &str) -> Config {
     }
 }
 
-fn parse_window(node: Node) -> result::Result<Window, ParseError> {
+fn parse_window(node: Node) -> Result<Window> {
     // Each window entry is a single-key map: `- window_name: <value>`
     let (name, value) = node.as_single_entry()?;
 
@@ -235,20 +234,6 @@ impl Project {
     }
 }
 
-#[derive(Debug)]
-pub struct ParseError {
-    pub path: String,
-    pub message: String,
-}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "at {}: {}", self.path, self.message)
-    }
-}
-
-impl std::error::Error for ParseError {}
-
 #[derive(Clone)]
 pub struct Node<'a> {
     yaml: &'a Yaml,
@@ -270,14 +255,14 @@ impl<'a> Node<'a> {
         }
     }
 
-    fn err(&self, message: impl Into<String>) -> ParseError {
-        ParseError {
+    fn err(&self, message: impl Into<String>) -> RojektiError {
+        RojektiError::ParseError {
             path: self.path.clone(),
             message: message.into(),
         }
     }
 
-    pub fn required(&self, key: &str) -> result::Result<Node<'a>, ParseError> {
+    pub fn required(&self, key: &str) -> Result<Node<'a>> {
         let node = self.child(key);
         if node.yaml.is_badvalue() || node.yaml.is_null() {
             Err(self.err(format!("missing required key {}", key)))
@@ -302,30 +287,30 @@ impl<'a> Node<'a> {
         }
     }
 
-    fn as_u64(&self) -> result::Result<u64, ParseError> {
+    fn as_u64(&self) -> Result<u64> {
         self.yaml
             .as_i64()
             .and_then(|v| u64::try_from(v).ok())
             .ok_or_else(|| self.err("expected unsigned integer"))
     }
 
-    fn as_str(&self) -> result::Result<&str, ParseError> {
+    fn as_str(&self) -> Result<&str> {
         self.yaml
             .as_str()
             .ok_or_else(|| self.err("expected string"))
     }
 
-    fn as_string(&self) -> result::Result<String, ParseError> {
+    fn as_string(&self) -> Result<String> {
         self.as_str().map(String::from)
     }
 
-    fn as_bool(&self) -> result::Result<bool, ParseError> {
+    fn as_bool(&self) -> Result<bool> {
         self.yaml
             .as_bool()
             .ok_or_else(|| self.err("expected boolean"))
     }
 
-    fn required_string(&self, key: &str) -> result::Result<String, ParseError> {
+    fn required_string(&self, key: &str) -> Result<String> {
         self.required(key)?
             .yaml
             .as_str()
@@ -333,7 +318,7 @@ impl<'a> Node<'a> {
             .map(String::from)
     }
 
-    pub fn as_single_entry(&self) -> result::Result<(&'a str, Node<'a>), ParseError> {
+    pub fn as_single_entry(&self) -> Result<(&'a str, Node<'a>)> {
         let hash = self
             .yaml
             .as_hash()
@@ -355,7 +340,7 @@ impl<'a> Node<'a> {
         Ok((key_str, child))
     }
 
-    pub fn entries(&self) -> result::Result<Vec<(&'a str, Node<'a>)>, ParseError> {
+    pub fn entries(&self) -> Result<Vec<(&'a str, Node<'a>)>> {
         let hash = self
             .yaml
             .as_hash()
@@ -376,9 +361,9 @@ impl<'a> Node<'a> {
             .collect()
     }
 
-    pub fn each<F, T>(&self, f: F) -> result::Result<Vec<T>, ParseError>
+    pub fn each<F, T>(&self, f: F) -> Result<Vec<T>>
     where
-        F: Fn(Node<'a>) -> result::Result<T, ParseError>,
+        F: Fn(Node<'a>) -> Result<T>,
     {
         let items = self
             .yaml
